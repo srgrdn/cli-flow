@@ -80,4 +80,22 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         )
     
     access_token = AuthService.create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"} 
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/check-admin")
+async def check_admin_rights(credentials: HTTPAuthorizationCredentials = Security(security), db: Session = Depends(get_db)):
+    """Проверка прав администратора"""
+    token = credentials.credentials
+    payload = AuthService.decode_access_token(token)
+    
+    if not payload or "sub" not in payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user = db.query(User).filter(User.email == payload["sub"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not an admin")
+    
+    return {"is_admin": True} 

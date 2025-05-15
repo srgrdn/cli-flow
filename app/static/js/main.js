@@ -24,6 +24,53 @@ function getCookie(name) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Проверка авторизации и прав администратора
+    const token = getCookie('access_token');
+    if (token) {
+        // Проверка JWT токена, чтобы узнать, является ли пользователь администратором
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(window.atob(base64));
+            
+            // Проверяем права администратора
+            checkAdminRights(token);
+        } catch (e) {
+            console.error('Ошибка при разборе токена:', e);
+        }
+    }
+    
+    // Проверка прав администратора через API
+    async function checkAdminRights(token) {
+        try {
+            const response = await fetch('/auth/check-admin', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                // Если пользователь - администратор, показываем ссылку на админку
+                const adminMenuItem = document.getElementById('adminMenuItem');
+                if (adminMenuItem) {
+                    adminMenuItem.style.display = 'block';
+                }
+                
+                // Настраиваем ссылку для перехода в админку
+                const adminLink = document.getElementById('adminLink');
+                if (adminLink) {
+                    adminLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.location.href = '/admin/?token=' + encodeURIComponent(token);
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Ошибка при проверке прав администратора:', e);
+        }
+    }
+
     // Обработка формы тестирования
     const testForm = document.getElementById('test-form');
     if (testForm) {
@@ -57,7 +104,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 // Сохраняем токен в куки вместо localStorage
                 setCookie('access_token', data.access_token, 1); // срок действия 1 день
-                window.location.href = '/';
+                
+                // Проверяем, является ли пользователь администратором
+                try {
+                    const adminResponse = await fetch('/auth/check-admin', {
+                        headers: {
+                            'Authorization': `Bearer ${data.access_token}`
+                        }
+                    });
+                    
+                    if (adminResponse.ok) {
+                        // Если пользователь - администратор, перенаправляем в админку
+                        window.location.href = '/admin/?token=' + encodeURIComponent(data.access_token);
+                    } else {
+                        // Иначе на главную страницу
+                        window.location.href = '/';
+                    }
+                } catch (error) {
+                    // В случае ошибки просто перенаправляем на главную
+                    window.location.href = '/';
+                }
             } else {
                 alert('Ошибка авторизации');
             }

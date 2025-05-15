@@ -1,0 +1,179 @@
+{% extends "admin/base.html" %}
+
+{% block header_buttons %}
+<div>
+    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="fas fa-user-plus me-1"></i> Добавить пользователя
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Email</th>
+                <th>Статус</th>
+                <th>Администратор</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.email }}</td>
+                <td>
+                    {% if user.is_active %}
+                    <span class="badge bg-success">Активен</span>
+                    {% else %}
+                    <span class="badge bg-danger">Неактивен</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.is_superuser %}
+                    <span class="badge bg-primary">Да</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Нет</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editUser{{ user.id }}Modal">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if not users %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>Пользователи отсутствуют. Добавьте нового пользователя.
+</div>
+{% endif %}
+
+<!-- Модальные окна для редактирования пользователей -->
+{% for user in users %}
+<div class="modal fade" id="editUser{{ user.id }}Modal" tabindex="-1" aria-labelledby="editUser{{ user.id }}ModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUser{{ user.id }}ModalLabel">Редактирование пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/admin/users/{{ user.id }}{% if token %}?token={{ token }}{% endif %}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="text" class="form-control" value="{{ user.email }}" readonly>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_active{{ user.id }}" name="is_active" {% if user.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active{{ user.id }}">Активен</label>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_superuser{{ user.id }}" name="is_superuser" {% if user.is_superuser %}checked{% endif %}>
+                        <label class="form-check-label" for="is_superuser{{ user.id }}">Администратор</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Модальное окно добавления пользователя -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Добавить пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/auth/register" method="post" id="addUserForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Пароль</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_superuser_new" name="is_superuser">
+                        <label class="form-check-label" for="is_superuser_new">Администратор</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-success">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Функция для получения токена из URL
+    function getTokenFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('token');
+    }
+    
+    // Получаем токен
+    const token = getTokenFromUrl();
+    
+    // Обработка формы добавления пользователя
+    const addUserForm = document.getElementById('addUserForm');
+    if (addUserForm) {
+        addUserForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            };
+            
+            try {
+                // Создаем заголовки и добавляем токен авторизации если он доступен
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    // После успешной регистрации перезагружаем страницу с токеном
+                    const redirectUrl = token ? `/admin/users?token=${token}` : '/admin/users';
+                    window.location.href = redirectUrl;
+                } else {
+                    const errorData = await response.json();
+                    alert('Ошибка: ' + (errorData.detail || 'Не удалось добавить пользователя'));
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 
