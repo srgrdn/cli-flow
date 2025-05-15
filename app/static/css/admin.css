@@ -1,0 +1,85 @@
+/* Стили для админ-панели */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.list-group-item {
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.list-group-item:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-left-color: #0d6efd;
+}
+
+.list-group-item.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    border-left: 3px solid #0d6efd;
+}
+
+.btn {
+    border-radius: 0.25rem;
+}
+
+.btn-group .btn {
+    margin-right: 2px;
+}
+
+.table {
+    vertical-align: middle;
+}
+
+.form-control, .form-select {
+    border-radius: 0.25rem;
+}
+
+.answer-item {
+    transition: transform 0.2s, box-shadow 0.2s;
+    background-color: #fff;
+}
+
+.answer-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Стили для различных уровней сложности вопросов */
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.badge.bg-warning {
+    background-color: #fd7e14 !important;
+    color: white;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+/* Анимации для карточек */
+.card.bg-primary, .card.bg-success {
+    transition: transform 0.3s;
+}
+
+.card.bg-primary:hover, .card.bg-success:hover {
+    transform: translateY(-5px);
+} 

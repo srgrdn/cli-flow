@@ -1,0 +1,158 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<form id="questionForm" method="post" action="/admin/questions/add{% if token %}?token={{ token }}{% endif %}">
+    <div class="mb-4">
+        <label for="text" class="form-label">Текст вопроса</label>
+        <textarea class="form-control" id="text" name="text" rows="3" required></textarea>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <label for="difficulty" class="form-label">Сложность</label>
+            <select class="form-select" id="difficulty" name="difficulty" required>
+                <option value="easy">Легкий</option>
+                <option value="medium" selected>Средний</option>
+                <option value="hard">Сложный</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="category" class="form-label">Категория</label>
+            <select class="form-select" id="category" name="category" required>
+                <option value="Управление пользователями">Управление пользователями</option>
+                <option value="Файловые системы">Файловые системы</option>
+                <option value="Права доступа">Права доступа</option>
+                <option value="Хранение данных">Хранение данных</option>
+                <option value="LVM">LVM</option>
+                <option value="Сеть">Сеть</option>
+                <option value="Процессы">Процессы</option>
+                <option value="Загрузка системы">Загрузка системы</option>
+                <option value="Другое">Другое</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Варианты ответов</h5>
+            <button type="button" class="btn btn-sm btn-success" id="addAnswerBtn">
+                <i class="fas fa-plus me-1"></i> Добавить ответ
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="answersContainer">
+                <div class="answer-item mb-3 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_correct" value="0" id="is_correct_0">
+                            <label class="form-check-label" for="is_correct_0">
+                                Правильный ответ
+                            </label>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-danger remove-answer-btn" data-index="0">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="mb-0">
+                        <textarea class="form-control" name="answers_text" rows="2" required placeholder="Введите вариант ответа"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info" id="noAnswersAlert" style="display: none;">
+                <i class="fas fa-info-circle me-2"></i>Добавьте хотя бы один вариант ответа.
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a href="/admin/questions{% if token %}?token={{ token }}{% endif %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Вернуться к списку
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i> Сохранить вопрос
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const answersContainer = document.getElementById('answersContainer');
+    const addAnswerBtn = document.getElementById('addAnswerBtn');
+    const noAnswersAlert = document.getElementById('noAnswersAlert');
+    const questionForm = document.getElementById('questionForm');
+    
+    let answerCount = 1;
+    
+    // Обработчик кнопки "Добавить ответ"
+    addAnswerBtn.addEventListener('click', function() {
+        const index = answerCount++;
+        const answerItem = document.createElement('div');
+        answerItem.className = 'answer-item mb-3 p-3 border rounded';
+        answerItem.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_correct" value="${index}" id="is_correct_${index}">
+                    <label class="form-check-label" for="is_correct_${index}">
+                        Правильный ответ
+                    </label>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger remove-answer-btn" data-index="${index}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="mb-0">
+                <textarea class="form-control" name="answers_text" rows="2" required placeholder="Введите вариант ответа"></textarea>
+            </div>
+        `;
+        
+        answersContainer.appendChild(answerItem);
+        noAnswersAlert.style.display = 'none';
+        
+        // Добавляем обработчик удаления ответа
+        const removeBtn = answerItem.querySelector('.remove-answer-btn');
+        removeBtn.addEventListener('click', function() {
+            answerItem.remove();
+            checkAnswersCount();
+        });
+    });
+    
+    // Добавляем обработчик для кнопки удаления первого ответа
+    document.querySelector('.remove-answer-btn').addEventListener('click', function() {
+        this.closest('.answer-item').remove();
+        checkAnswersCount();
+    });
+    
+    // Проверяем количество ответов
+    function checkAnswersCount() {
+        const answerItems = answersContainer.querySelectorAll('.answer-item');
+        if (answerItems.length === 0) {
+            noAnswersAlert.style.display = 'block';
+        } else {
+            noAnswersAlert.style.display = 'none';
+        }
+    }
+    
+    // Валидация формы перед отправкой
+    questionForm.addEventListener('submit', function(e) {
+        const answerItems = answersContainer.querySelectorAll('.answer-item');
+        if (answerItems.length === 0) {
+            e.preventDefault();
+            noAnswersAlert.style.display = 'block';
+            return false;
+        }
+        
+        const hasCorrectAnswer = Array.from(document.querySelectorAll('input[name="is_correct"]:checked')).length > 0;
+        if (!hasCorrectAnswer) {
+            e.preventDefault();
+            alert('Пожалуйста, отметьте хотя бы один правильный ответ.');
+            return false;
+        }
+        
+        return true;
+    });
+});
+</script>
+{% endblock %} 

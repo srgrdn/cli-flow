@@ -1,0 +1,89 @@
+{% extends "admin/base.html" %}
+
+{% block header_buttons %}
+<div>
+    <a href="/admin/questions/add{% if token %}?token={{ token }}{% endif %}" class="btn btn-sm btn-success">
+        <i class="fas fa-plus me-1"></i> Добавить вопрос
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Вопрос</th>
+                <th>Сложность</th>
+                <th>Категория</th>
+                <th>Кол-во ответов</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for question in questions %}
+            <tr>
+                <td>{{ question.id }}</td>
+                <td>{{ question.text|truncate(50) }}</td>
+                <td>
+                    {% if question.difficulty == 'easy' %}
+                    <span class="badge bg-success">Легкий</span>
+                    {% elif question.difficulty == 'medium' %}
+                    <span class="badge bg-warning">Средний</span>
+                    {% else %}
+                    <span class="badge bg-danger">Сложный</span>
+                    {% endif %}
+                </td>
+                <td>{{ question.category }}</td>
+                <td>{{ question.answers|length }}</td>
+                <td>
+                    <div class="btn-group">
+                        <a href="/admin/questions/{{ question.id }}/edit{% if token %}?token={{ token }}{% endif %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="/admin/questions/{{ question.id }}/delete{% if token %}?token={{ token }}{% endif %}" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите удалить этот вопрос?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if not questions %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>Вопросы отсутствуют. <a href="/admin/questions/add{% if token %}?token={{ token }}{% endif %}">Добавьте новый вопрос</a>.
+</div>
+{% endif %}
+
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Категории вопросов</h5>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                {% set categories = [] %}
+                {% for question in questions %}
+                    {% if question.category not in categories %}
+                        {% set _ = categories.append(question.category) %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% for category in categories %}
+                <span class="badge bg-info p-2">{{ category }}</span>
+                {% endfor %}
+                
+                {% if not categories %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Категории отсутствуют.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

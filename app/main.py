@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from database import get_db, engine
 from models import Base, Question, Answer
 from schemas import QuestionCreate, QuestionResponse
-from routers import questions, auth
+from routers import questions, auth, admin
 
 # Создаем таблицы в базе данных
 Base.metadata.create_all(bind=engine)
@@ -22,6 +22,7 @@ templates = Jinja2Templates(directory="templates")
 # Подключаем роутеры
 app.include_router(questions.router)
 app.include_router(auth.router)
+app.include_router(admin.router)
 
 
 @app.get("/")
