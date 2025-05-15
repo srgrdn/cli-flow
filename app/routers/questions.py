@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from database import get_db
-from models import Question, Answer
+from models import Question, Answer, User
 from schemas import QuestionCreate, QuestionResponse
+from routers.auth import AuthService
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 router = APIRouter(
     prefix="/questions",
@@ -14,6 +16,7 @@ router = APIRouter(
 )
 
 templates = Jinja2Templates(directory="templates")
+security = HTTPBearer(auto_error=False)
 
 
 @router.post("/", response_model=QuestionResponse)
@@ -50,13 +53,55 @@ async def read_questions(skip: int = 0, limit: int = 100, db: Session = Depends(
 
 
 @router.get("/test", response_model=None)
-async def test_page(request: Request, db: Session = Depends(get_db)):
-    """Страница с тестом"""
-    questions = db.query(Question).all()
-    return templates.TemplateResponse(
-        "test.html", 
-        {"request": request, "questions": questions, "title": "Теоретический тест RHCSA"}
-    )
+async def test_page(
+    request: Request, 
+    db: Session = Depends(get_db), 
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security),
+    token: Optional[str] = None
+):
+    """Страница с тестом (требует авторизации)"""
+    
+    # Проверяем токен из заголовка Authorization или из query параметра
+    auth_token = None
+    if credentials:
+        auth_token = credentials.credentials
+    elif token:
+        auth_token = token
+    
+    if not auth_token:
+        raise HTTPException(
+            status_code=403, 
+            detail="Не авторизован. Токен не найден. Пожалуйста, войдите в систему."
+        )
+    
+    try:
+        # Верификация токена
+        payload = AuthService.decode_access_token(auth_token)
+        if payload is None or "sub" not in payload:
+            raise HTTPException(
+                status_code=403, 
+                detail="Недействительный токен авторизации. Пожалуйста, войдите в систему снова."
+            )
+        
+        # Проверка пользователя
+        user = db.query(User).filter(User.email == payload["sub"]).first()
+        if user is None:
+            raise HTTPException(
+                status_code=403, 
+                detail="Пользователь не найден. Возможно, учетная запись была удалена."
+            )
+        
+        # Получаем вопросы
+        questions = db.query(Question).all()
+        return templates.TemplateResponse(
+            "test.html", 
+            {"request": request, "questions": questions, "title": "Теоретический тест RHCSA"}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Ошибка авторизации: {str(e)}"
+        )
 
 
 @router.get("/{question_id}", response_model=QuestionResponse)
@@ -65,4 +110,4 @@ async def read_question(question_id: int, db: Session = Depends(get_db)):
     question = db.query(Question).filter(Question.id == question_id).first()
     if question is None:
         raise HTTPException(status_code=404, detail="Вопрос не найден")
-    return question
+    return question 

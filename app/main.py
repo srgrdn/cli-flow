@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from database import get_db, engine
 from models import Base, Question, Answer
 from schemas import QuestionCreate, QuestionResponse
-from routers import questions
+from routers import questions, auth
 
 # Создаем таблицы в базе данных
 Base.metadata.create_all(bind=engine)
@@ -21,12 +21,25 @@ templates = Jinja2Templates(directory="templates")
 
 # Подключаем роутеры
 app.include_router(questions.router)
+app.include_router(auth.router)
 
 
 @app.get("/")
 async def home(request: Request):
     """Главная страница приложения"""
     return templates.TemplateResponse("index.html", {"request": request, "title": "RHCSA Testing Service"})
+
+
+@app.get("/login")
+async def login_page(request: Request):
+    """Страница входа в систему"""
+    return templates.TemplateResponse("login.html", {"request": request, "title": "Вход в систему"})
+
+
+@app.get("/register")
+async def register_page(request: Request):
+    """Страница регистрации"""
+    return templates.TemplateResponse("register.html", {"request": request, "title": "Регистрация"})
 
 
 @app.get("/health")
