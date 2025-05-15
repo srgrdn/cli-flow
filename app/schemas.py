@@ -41,3 +41,32 @@ class QuestionResponse(QuestionBase):
 
     class Config:
         orm_mode = True
+
+
+class UserBase(BaseModel):
+    """Базовая схема пользователя"""
+    email: str
+
+
+class UserCreate(UserBase):
+    """Схема для регистрации пользователя"""
+    password: str
+
+
+class User(UserBase):
+    """Схема пользователя из БД"""
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+class Token(BaseModel):
+    """Схема для JWT токена"""
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    """Данные в токене"""
+    email: Optional[str] = None
