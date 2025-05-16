@@ -1,13 +1,11 @@
 """Скрипт для инициализации базы данных тестовыми данными"""
 
-import asyncio
 import os
 import sys
 
 # Добавляем родительскую директорию в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy.orm import Session
 from database import SessionLocal, engine, Base
 from models import Question, Answer
 
@@ -107,6 +105,10 @@ def init_db():
         print(f"Ошибка при инициализации базы данных: {e}")
     finally:
         db.close()
+
+# Обновление схемы базы данных
+print("Убедитесь, что схема базы данных обновлена...")
+Base.metadata.create_all(bind=engine)
 
 if __name__ == "__main__":
     init_db()

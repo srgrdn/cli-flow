@@ -4,8 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
-from models import User, Question, Answer
-from schemas import QuestionCreate, QuestionResponse, UserCreate
+from models import User, Question, Answer, UserAnswer
 from routers.auth import AuthService
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from datetime import datetime
@@ -116,6 +115,7 @@ async def admin_users(
         {
             "request": request,
             "title": "Управление пользователями",
+            "admin": admin,
             "users": users,
             "token": token
         }
@@ -246,6 +246,15 @@ async def admin_delete_question(
     """Удаление вопроса"""
     question = db.query(Question).filter(Question.id == question_id).first()
     if question:
+        # Сначала удаляем записи в user_answers, связанные с ответами на этот вопрос
+        answers = db.query(Answer).filter(Answer.question_id == question_id).all()
+        answer_ids = [answer.id for answer in answers]
+        
+        if answer_ids:
+            db.query(UserAnswer).filter(UserAnswer.answer_id.in_(answer_ids)).delete(synchronize_session=False)
+            db.commit()
+        
+        # Теперь можем удалить сам вопрос (и связанные ответы через каскад)
         db.delete(question)
         db.commit()
 

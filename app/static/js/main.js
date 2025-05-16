@@ -71,22 +71,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Обработка формы тестирования
-    const testForm = document.getElementById('test-form');
-    if (testForm) {
-        testForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // В будущем здесь будет логика отправки ответов и получения результатов
-            alert('Функционал проверки ответов будет реализован в следующей версии!');
-            
-            // Перенаправление на главную страницу
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1500);
-        });
-    }
-    
     // Обработчик формы входа
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
@@ -154,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Перехват всех ссылок на защищенные страницы
-    document.querySelectorAll('a[href^="/questions/test"]').forEach(link => {
+    document.querySelectorAll('a[href^="/questions/test"], a[href^="/questions/history"]').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const token = getCookie('access_token');
