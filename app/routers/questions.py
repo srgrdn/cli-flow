@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Request, Security, Form
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime
 
 from database import get_db
-from models import Question, Answer, User
+from models import Question, Answer, User, TestAttempt, UserAnswer
 from schemas import QuestionCreate, QuestionResponse
 from routers.auth import AuthService
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -17,6 +18,50 @@ router = APIRouter(
 
 templates = Jinja2Templates(directory="templates")
 security = HTTPBearer(auto_error=False)
+
+
+# Функция для проверки авторизации пользователя
+async def get_current_user(
+    db: Session = Depends(get_db),
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security),
+    token: Optional[str] = None
+):
+    """Получение текущего пользователя из токена"""
+    auth_token = None
+    if credentials:
+        auth_token = credentials.credentials
+    elif token:
+        auth_token = token
+    
+    if not auth_token:
+        raise HTTPException(
+            status_code=403, 
+            detail="Не авторизован. Токен не найден. Пожалуйста, войдите в систему."
+        )
+    
+    try:
+        # Верификация токена
+        payload = AuthService.decode_access_token(auth_token)
+        if payload is None or "sub" not in payload:
+            raise HTTPException(
+                status_code=403, 
+                detail="Недействительный токен авторизации. Пожалуйста, войдите в систему снова."
+            )
+        
+        # Проверка пользователя
+        user = db.query(User).filter(User.email == payload["sub"]).first()
+        if user is None:
+            raise HTTPException(
+                status_code=403, 
+                detail="Пользователь не найден. Возможно, учетная запись была удалена."
+            )
+        
+        return user
+    except Exception as e:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Ошибка авторизации: {str(e)}"
+        )
 
 
 @router.post("/", response_model=QuestionResponse)
@@ -56,52 +101,151 @@ async def read_questions(skip: int = 0, limit: int = 100, db: Session = Depends(
 async def test_page(
     request: Request, 
     db: Session = Depends(get_db), 
-    credentials: Optional[HTTPAuthorizationCredentials] = Security(security),
-    token: Optional[str] = None
+    user: User = Depends(get_current_user)
 ):
     """Страница с тестом (требует авторизации)"""
+    # Получаем вопросы
+    questions = db.query(Question).all()
     
-    # Проверяем токен из заголовка Authorization или из query параметра
-    auth_token = None
-    if credentials:
-        auth_token = credentials.credentials
-    elif token:
-        auth_token = token
+    # Создаем новую попытку прохождения теста
+    test_attempt = TestAttempt(
+        user_id=user.id,
+        start_time=datetime.utcnow(),
+        max_score=len(questions)
+    )
+    db.add(test_attempt)
+    db.commit()
+    db.refresh(test_attempt)
     
-    if not auth_token:
-        raise HTTPException(
-            status_code=403, 
-            detail="Не авторизован. Токен не найден. Пожалуйста, войдите в систему."
-        )
+    return templates.TemplateResponse(
+        "test.html", 
+        {
+            "request": request, 
+            "questions": questions, 
+            "title": "Теоретический тест RHCSA",
+            "test_attempt_id": test_attempt.id,
+            "user": user
+        }
+    )
+
+
+@router.post("/submit", response_model=None)
+async def submit_test(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    test_attempt_id: int = Form(...),
+):
+    """Отправка и проверка ответов на тест"""
+    # Получаем текущую попытку прохождения теста
+    test_attempt = db.query(TestAttempt).filter(
+        TestAttempt.id == test_attempt_id,
+        TestAttempt.user_id == user.id
+    ).first()
     
-    try:
-        # Верификация токена
-        payload = AuthService.decode_access_token(auth_token)
-        if payload is None or "sub" not in payload:
-            raise HTTPException(
-                status_code=403, 
-                detail="Недействительный токен авторизации. Пожалуйста, войдите в систему снова."
-            )
-        
-        # Проверка пользователя
-        user = db.query(User).filter(User.email == payload["sub"]).first()
-        if user is None:
-            raise HTTPException(
-                status_code=403, 
-                detail="Пользователь не найден. Возможно, учетная запись была удалена."
-            )
-        
-        # Получаем вопросы
-        questions = db.query(Question).all()
-        return templates.TemplateResponse(
-            "test.html", 
-            {"request": request, "questions": questions, "title": "Теоретический тест RHCSA"}
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Ошибка авторизации: {str(e)}"
-        )
+    if not test_attempt:
+        raise HTTPException(status_code=404, detail="Попытка прохождения теста не найдена")
+    
+    # Завершаем попытку
+    test_attempt.end_time = datetime.utcnow()
+    
+    # Обрабатываем данные формы
+    form_data = await request.form()
+    
+    # Словарь для результатов
+    results = {
+        "score": 0,
+        "max_score": 0,
+        "correct_answers": 0,
+        "total_questions": 0,
+        "details": []
+    }
+    
+    # Обрабатываем ответы
+    for key, value in form_data.items():
+        if key.startswith('question_') and key != 'test_attempt_id':
+            question_id = int(key.replace('question_', ''))
+            answer_id = int(value)
+            
+            # Получаем вопрос и ответ
+            question = db.query(Question).filter(Question.id == question_id).first()
+            answer = db.query(Answer).filter(Answer.id == answer_id).first()
+            
+            if question and answer:
+                results["total_questions"] += 1
+                results["max_score"] += 1
+                
+                # Проверяем правильность ответа
+                is_correct = answer.is_correct
+                if is_correct:
+                    results["correct_answers"] += 1
+                    results["score"] += 1
+                
+                # Сохраняем ответ пользователя
+                user_answer = UserAnswer(
+                    test_attempt_id=test_attempt.id,
+                    question_id=question_id,
+                    answer_id=answer_id,
+                    is_correct=is_correct
+                )
+                db.add(user_answer)
+                
+                # Добавляем детали для отображения
+                correct_answer = db.query(Answer).filter(
+                    Answer.question_id == question_id,
+                    Answer.is_correct == True  # noqa: E712
+                ).first()
+                
+                results["details"].append({
+                    "question_id": question_id,
+                    "question_text": question.text,
+                    "user_answer": answer.text,
+                    "is_correct": is_correct,
+                    "correct_answer": correct_answer.text if correct_answer else "Нет правильного ответа"
+                })
+    
+    # Обновляем результаты теста
+    test_attempt.score = results["score"]
+    test_attempt.max_score = results["max_score"]
+    db.commit()
+    
+    # Рассчитываем процент правильных ответов
+    results["percentage"] = (results["score"] / results["max_score"]) * 100 if results["max_score"] > 0 else 0
+    
+    # Отображаем результаты
+    return templates.TemplateResponse(
+        "test_results.html", 
+        {
+            "request": request,
+            "title": "Результаты теста",
+            "results": results,
+            "user": user
+        }
+    )
+
+
+@router.get("/history", response_model=None)
+async def test_history(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """История прохождения тестов пользователя"""
+    # Получаем историю прохождения тестов
+    test_attempts = db.query(TestAttempt).filter(
+        TestAttempt.user_id == user.id,
+        TestAttempt.end_time.is_not(None)  # noqa: E711
+    ).order_by(TestAttempt.end_time.desc()).all()
+    
+    return templates.TemplateResponse(
+        "test_history.html",
+        {
+            "request": request,
+            "title": "История тестирования",
+            "test_attempts": test_attempts,
+            "user": user
+        }
+    )
 
 
 @router.get("/{question_id}", response_model=QuestionResponse)

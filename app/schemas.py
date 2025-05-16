@@ -1,5 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
+from datetime import datetime
 
 
 class AnswerBase(BaseModel):
@@ -70,3 +71,51 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     """Данные в токене"""
     email: Optional[str] = None
+
+
+class TestSubmit(BaseModel):
+    """Схема для отправки ответов на тест"""
+    answers: Dict[int, int]  # question_id: answer_id
+
+
+class UserAnswerResponse(BaseModel):
+    """Схема для ответа пользователя на вопрос"""
+    question_id: int
+    answer_id: int
+    is_correct: bool
+    
+    class Config:
+        orm_mode = True
+
+
+class TestAttemptBase(BaseModel):
+    """Базовая схема для попытки прохождения теста"""
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    score: int
+    max_score: int
+
+
+class TestAttemptCreate(BaseModel):
+    """Схема для создания попытки прохождения теста"""
+    user_id: int
+
+
+class TestAttemptResponse(TestAttemptBase):
+    """Схема для ответа с результатами теста"""
+    id: int
+    user_id: int
+    user_answers: List[UserAnswerResponse] = []
+    
+    class Config:
+        orm_mode = True
+
+
+class TestResult(BaseModel):
+    """Схема для результатов теста"""
+    score: int
+    max_score: int
+    percentage: float
+    correct_answers: int
+    total_questions: int
+    details: List[Dict[str, Any]]
