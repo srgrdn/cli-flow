@@ -103,17 +103,22 @@ async def test_page(
     db: Session = Depends(get_db), 
     user: User = Depends(get_current_user)
 ):
-    """Страница выбора категорий для теста (требует авторизации)"""
+    """Страница выбора категорий и сложности для теста (требует авторизации)"""
     # Получаем все уникальные категории из базы данных
     categories = db.query(Question.category).distinct().all()
     categories = [cat[0] for cat in categories]
+    
+    # Получаем все уникальные уровни сложности
+    difficulties = db.query(Question.difficulty).distinct().all()
+    difficulties = [diff[0] for diff in difficulties]
     
     return templates.TemplateResponse(
         "test_categories.html", 
         {
             "request": request, 
             "categories": categories,
-            "title": "Выбор тем для тестирования RHCSA",
+            "difficulties": difficulties,
+            "title": "Выбор параметров для тестирования RHCSA",
             "user": user
         }
     )
@@ -125,20 +130,34 @@ async def start_test(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    """Начать тест с выбранными категориями"""
+    """Начать тест с выбранными категориями и сложностью"""
     form_data = await request.form()
-    selected_categories = []
     
     # Получаем выбранные категории из формы
+    selected_categories = []
     for key, value in form_data.items():
         if key == "categories":
             selected_categories.append(value)
     
-    # Если категории не выбраны, используем все категории
-    if not selected_categories:
-        questions = db.query(Question).all()
-    else:
-        questions = db.query(Question).filter(Question.category.in_(selected_categories)).all()
+    # Получаем выбранные уровни сложности из формы
+    selected_difficulties = []
+    for key, value in form_data.items():
+        if key == "difficulties":
+            selected_difficulties.append(value)
+    
+    # Строим запрос на основе выбранных фильтров
+    query = db.query(Question)
+    
+    # Применяем фильтр по категориям, если они выбраны
+    if selected_categories:
+        query = query.filter(Question.category.in_(selected_categories))
+    
+    # Применяем фильтр по сложности, если она выбрана
+    if selected_difficulties:
+        query = query.filter(Question.difficulty.in_(selected_difficulties))
+    
+    # Получаем отфильтрованные вопросы
+    questions = query.all()
     
     # Создаем новую попытку прохождения теста
     test_attempt = TestAttempt(
@@ -159,7 +178,8 @@ async def start_test(
             "title": "Теоретический тест RHCSA",
             "test_attempt_id": test_attempt.id,
             "user": user,
-            "selected_categories": selected_categories
+            "selected_categories": selected_categories,
+            "selected_difficulties": selected_difficulties
         }
     )
 
@@ -192,6 +212,12 @@ async def submit_test(
     for key, value in form_data.items():
         if key.startswith('selected_category_'):
             selected_categories.append(value)
+    
+    # Получаем выбранные уровни сложности, если они были переданы
+    selected_difficulties = []
+    for key, value in form_data.items():
+        if key.startswith('selected_difficulty_'):
+            selected_difficulties.append(value)
     
     # Словарь для результатов
     results = {
@@ -261,7 +287,8 @@ async def submit_test(
             "title": "Результаты теста",
             "results": results,
             "user": user,
-            "selected_categories": selected_categories
+            "selected_categories": selected_categories,
+            "selected_difficulties": selected_difficulties
         }
     )
 
