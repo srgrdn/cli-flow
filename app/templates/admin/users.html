@@ -65,18 +65,23 @@
                 <h5 class="modal-title" id="editUser{{ user.id }}ModalLabel">Редактирование пользователя</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="/admin/users/{{ user.id }}{% if token %}?token={{ token }}{% endif %}" method="post">
+            <form id="editUserForm{{ user.id }}" action="/admin/users/{{ user.id }}{% if token %}?token={{ token }}{% endif %}" method="post">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Email</label>
                         <input type="text" class="form-control" value="{{ user.email }}" readonly>
                     </div>
+                    <!-- Hidden inputs with default values -->
+                    <input type="hidden" name="is_active" value="false">
+                    <input type="hidden" name="is_superuser" value="false">
+                    
+                    <!-- Actual checkboxes that will override the hidden inputs when checked -->
                     <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="is_active{{ user.id }}" name="is_active" {% if user.is_active %}checked{% endif %}>
+                        <input type="checkbox" class="form-check-input" id="is_active{{ user.id }}" name="is_active" value="true" {% if user.is_active %}checked{% endif %}>
                         <label class="form-check-label" for="is_active{{ user.id }}">Активен</label>
                     </div>
                     <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="is_superuser{{ user.id }}" name="is_superuser" {% if user.is_superuser %}checked{% endif %}>
+                        <input type="checkbox" class="form-check-input" id="is_superuser{{ user.id }}" name="is_superuser" value="true" {% if user.is_superuser %}checked{% endif %}>
                         <label class="form-check-label" for="is_superuser{{ user.id }}">Администратор</label>
                     </div>
                 </div>
