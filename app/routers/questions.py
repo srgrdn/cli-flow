@@ -103,9 +103,42 @@ async def test_page(
     db: Session = Depends(get_db), 
     user: User = Depends(get_current_user)
 ):
-    """Страница с тестом (требует авторизации)"""
-    # Получаем вопросы
-    questions = db.query(Question).all()
+    """Страница выбора категорий для теста (требует авторизации)"""
+    # Получаем все уникальные категории из базы данных
+    categories = db.query(Question.category).distinct().all()
+    categories = [cat[0] for cat in categories]
+    
+    return templates.TemplateResponse(
+        "test_categories.html", 
+        {
+            "request": request, 
+            "categories": categories,
+            "title": "Выбор тем для тестирования RHCSA",
+            "user": user
+        }
+    )
+
+
+@router.post("/start_test", response_model=None)
+async def start_test(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """Начать тест с выбранными категориями"""
+    form_data = await request.form()
+    selected_categories = []
+    
+    # Получаем выбранные категории из формы
+    for key, value in form_data.items():
+        if key == "categories":
+            selected_categories.append(value)
+    
+    # Если категории не выбраны, используем все категории
+    if not selected_categories:
+        questions = db.query(Question).all()
+    else:
+        questions = db.query(Question).filter(Question.category.in_(selected_categories)).all()
     
     # Создаем новую попытку прохождения теста
     test_attempt = TestAttempt(
@@ -117,6 +150,7 @@ async def test_page(
     db.commit()
     db.refresh(test_attempt)
     
+    # Add selected categories as hidden fields to pass them to the results page
     return templates.TemplateResponse(
         "test.html", 
         {
@@ -124,7 +158,8 @@ async def test_page(
             "questions": questions, 
             "title": "Теоретический тест RHCSA",
             "test_attempt_id": test_attempt.id,
-            "user": user
+            "user": user,
+            "selected_categories": selected_categories
         }
     )
 
@@ -151,6 +186,12 @@ async def submit_test(
     
     # Обрабатываем данные формы
     form_data = await request.form()
+    
+    # Получаем выбранные категории, если они были переданы
+    selected_categories = []
+    for key, value in form_data.items():
+        if key.startswith('selected_category_'):
+            selected_categories.append(value)
     
     # Словарь для результатов
     results = {
@@ -219,7 +260,8 @@ async def submit_test(
             "request": request,
             "title": "Результаты теста",
             "results": results,
-            "user": user
+            "user": user,
+            "selected_categories": selected_categories
         }
     )
 

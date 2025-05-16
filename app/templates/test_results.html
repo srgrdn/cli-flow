@@ -51,6 +51,15 @@
     <div class="container mt-5">
         <h1 class="mb-4 text-center">Результаты теста</h1>
         
+        {% if selected_categories %}
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-filter me-2"></i>Результаты тестирования по выбранным темам: 
+            {% for category in selected_categories %}
+            <span class="badge bg-primary me-1">{{ category }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
         <div class="row mb-5">
             <div class="col-md-6 offset-md-3">
                 <div class="card">
