@@ -49,61 +49,40 @@
     </nav>
 
     <div class="container mt-5">
-        <h1 class="mb-4 text-center">Теоретический тест RHCSA</h1>
+        <h1 class="mb-4 text-center">Выбор тем для тестирования</h1>
         
-        {% if selected_categories %}
-        <div class="alert alert-info mb-4">
-            <i class="fas fa-filter me-2"></i>Тестирование по выбранным темам: 
-            {% for category in selected_categories %}
-            <span class="badge bg-primary me-1">{{ category }}</span>
-            {% endfor %}
-        </div>
-        {% endif %}
-        
-        <form id="test-form" method="post" action="/questions/submit">
-            <input type="hidden" name="test_attempt_id" value="{{ test_attempt_id }}">
-            
-            {% if selected_categories %}
-                {% for category in selected_categories %}
-                <input type="hidden" name="selected_category_{{ loop.index }}" value="{{ category }}">
-                {% endfor %}
-            {% endif %}
-            
-            {% for question in questions %}
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between">
-                    <span>Вопрос {{ loop.index }}</span>
-                    <span class="badge bg-{{ question.difficulty == 'easy' and 'success' or question.difficulty == 'medium' and 'warning' or 'danger' }}">{{ question.difficulty }}</span>
-                </div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ question.text }}</h5>
-                    <div class="mt-3">
-                        {% for answer in question.answers %}
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" id="answer_{{ answer.id }}" value="{{ answer.id }}" required>
-                            <label class="form-check-label" for="answer_{{ answer.id }}">
-                                {{ answer.text }}
-                            </label>
-                        </div>
-                        {% endfor %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Выберите темы для тестирования</h5>
+            </div>
+            <div class="card-body">
+                <form id="categories-form" method="post" action="/questions/start_test">
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>Выберите одну или несколько тем для тестирования. Если не выбрать ни одной темы, тест будет содержать вопросы из всех доступных тем.
                     </div>
-                </div>
-                <div class="card-footer text-muted">
-                    Категория: {{ question.category }}
-                </div>
+                    
+                    <div class="mb-3">
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                            {% for category in categories %}
+                            <div class="col">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="categories" id="category_{{ loop.index }}" value="{{ category }}">
+                                    <label class="form-check-label" for="category_{{ loop.index }}">
+                                        {{ category }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary">Начать тестирование</button>
+                        <a href="/questions/test" class="btn btn-outline-secondary ms-2">Отмена</a>
+                    </div>
+                </form>
             </div>
-            {% else %}
-            <div class="alert alert-info">
-                <p>В настоящее время вопросы отсутствуют. Они будут добавлены в ближайшее время.</p>
-            </div>
-            {% endfor %}
-            
-            {% if questions %}
-            <div class="d-grid gap-2 col-md-6 mx-auto mb-5">
-                <button type="submit" class="btn btn-primary btn-lg">Отправить ответы</button>
-            </div>
-            {% endif %}
-        </form>
+        </div>
     </div>
 
     <footer class="mt-5 py-3 bg-light">
@@ -123,11 +102,11 @@
             }
             
             // Добавление токена к форме перед отправкой
-            const testForm = document.getElementById('test-form');
+            const categoriesForm = document.getElementById('categories-form');
             const token = getTokenFromUrl();
             
-            if (testForm && token) {
-                testForm.addEventListener('submit', function(e) {
+            if (categoriesForm && token) {
+                categoriesForm.addEventListener('submit', function(e) {
                     // Проверяем, если форма уже отправляется на URL с токеном
                     if (!this.action.includes('token=')) {
                         // Если нет, добавляем токен к URL
@@ -142,4 +121,4 @@
         });
     </script>
 </body>
-</html>
+</html> 
