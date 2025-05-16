@@ -13,6 +13,15 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/rhcsa_db
 
+  lint:
+    build: ./app
+    working_dir: /app
+    command: /bin/bash -c "python -m ruff check ."
+    volumes:
+      - ./app:/app
+    profiles:
+      - lint
+
   db:
     image: postgres:16
     volumes:

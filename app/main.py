@@ -1,12 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
 
-from database import get_db, engine
-from models import Base, Question, Answer
-from schemas import QuestionCreate, QuestionResponse
-from routers import questions, auth, admin
+from database import engine
+from models import Base
+from routers import admin, auth, questions
 
 # Создаем таблицы в базе данных
 Base.metadata.create_all(bind=engine)

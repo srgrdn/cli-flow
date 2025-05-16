@@ -5,9 +5,8 @@ import sys
 
 # Добавляем родительскую директорию в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from database import SessionLocal, engine, Base
-from models import Question, Answer
+from database import Base, SessionLocal, engine  # noqa: E402
+from models import Answer, Question  # noqa: E402
 
 # Тестовые данные для заполнения базы
 sample_questions = [
@@ -68,6 +67,7 @@ sample_questions = [
     }
 ]
 
+
 def init_db():
     """Инициализация базы данных тестовыми данными"""
     db = SessionLocal()
@@ -77,7 +77,7 @@ def init_db():
         if existing_questions > 0:
             print("База данных уже содержит вопросы. Пропускаем инициализацию.")
             return
-        
+
         # Добавляем тестовые вопросы и ответы
         for q_data in sample_questions:
             question = Question(
@@ -87,7 +87,7 @@ def init_db():
             )
             db.add(question)
             db.commit()
-            
+
             # Добавляем ответы для вопроса
             for a_data in q_data["answers"]:
                 answer = Answer(
@@ -96,15 +96,16 @@ def init_db():
                     question_id=question.id
                 )
                 db.add(answer)
-            
+
             db.commit()
-        
+
         print(f"База данных успешно инициализирована {len(sample_questions)} вопросами.")
-    
+
     except Exception as e:
         print(f"Ошибка при инициализации базы данных: {e}")
     finally:
         db.close()
+
 
 # Обновление схемы базы данных
 print("Убедитесь, что схема базы данных обновлена...")

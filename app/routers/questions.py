@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Security, Form
+from datetime import datetime
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import datetime
 
 from database import get_db
-from models import Question, Answer, User, TestAttempt, UserAnswer
-from schemas import QuestionCreate, QuestionResponse
+from models import Answer, Question, TestAttempt, User, UserAnswer
 from routers.auth import AuthService
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from schemas import QuestionCreate, QuestionResponse
 
 router = APIRouter(
     prefix="/questions",
@@ -32,36 +33,36 @@ async def get_current_user(
         auth_token = credentials.credentials
     elif token:
         auth_token = token
-    
+
     if not auth_token:
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Не авторизован. Токен не найден. Пожалуйста, войдите в систему."
         )
-    
+
     try:
         # Верификация токена
         payload = AuthService.decode_access_token(auth_token)
         if payload is None or "sub" not in payload:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail="Недействительный токен авторизации. Пожалуйста, войдите в систему снова."
             )
-        
+
         # Проверка пользователя
         user = db.query(User).filter(User.email == payload["sub"]).first()
         if user is None:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail="Пользователь не найден. Возможно, учетная запись была удалена."
             )
-        
+
         return user
     except Exception as e:
         raise HTTPException(
             status_code=403,
             detail=f"Ошибка авторизации: {str(e)}"
-        )
+        ) from e
 
 
 @router.post("/", response_model=QuestionResponse)
@@ -99,23 +100,23 @@ async def read_questions(skip: int = 0, limit: int = 100, db: Session = Depends(
 
 @router.get("/test", response_model=None)
 async def test_page(
-    request: Request, 
-    db: Session = Depends(get_db), 
+    request: Request,
+    db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
     """Страница выбора категорий и сложности для теста (требует авторизации)"""
     # Получаем все уникальные категории из базы данных
     categories = db.query(Question.category).distinct().all()
     categories = [cat[0] for cat in categories]
-    
+
     # Получаем все уникальные уровни сложности
     difficulties = db.query(Question.difficulty).distinct().all()
     difficulties = [diff[0] for diff in difficulties]
-    
+
     return templates.TemplateResponse(
-        "test_categories.html", 
+        "test_categories.html",
         {
-            "request": request, 
+            "request": request,
             "categories": categories,
             "difficulties": difficulties,
             "title": "Выбор параметров для тестирования RHCSA",
@@ -132,33 +133,33 @@ async def start_test(
 ):
     """Начать тест с выбранными категориями и сложностью"""
     form_data = await request.form()
-    
+
     # Получаем выбранные категории из формы
     selected_categories = []
     for key, value in form_data.items():
         if key == "categories":
             selected_categories.append(value)
-    
+
     # Получаем выбранные уровни сложности из формы
     selected_difficulties = []
     for key, value in form_data.items():
         if key == "difficulties":
             selected_difficulties.append(value)
-    
+
     # Строим запрос на основе выбранных фильтров
     query = db.query(Question)
-    
+
     # Применяем фильтр по категориям, если они выбраны
     if selected_categories:
         query = query.filter(Question.category.in_(selected_categories))
-    
+
     # Применяем фильтр по сложности, если она выбрана
     if selected_difficulties:
         query = query.filter(Question.difficulty.in_(selected_difficulties))
-    
+
     # Получаем отфильтрованные вопросы
     questions = query.all()
-    
+
     # Создаем новую попытку прохождения теста
     test_attempt = TestAttempt(
         user_id=user.id,
@@ -168,13 +169,13 @@ async def start_test(
     db.add(test_attempt)
     db.commit()
     db.refresh(test_attempt)
-    
+
     # Add selected categories as hidden fields to pass them to the results page
     return templates.TemplateResponse(
-        "test.html", 
+        "test.html",
         {
-            "request": request, 
-            "questions": questions, 
+            "request": request,
+            "questions": questions,
             "title": "Теоретический тест RHCSA",
             "test_attempt_id": test_attempt.id,
             "user": user,
@@ -197,28 +198,28 @@ async def submit_test(
         TestAttempt.id == test_attempt_id,
         TestAttempt.user_id == user.id
     ).first()
-    
+
     if not test_attempt:
         raise HTTPException(status_code=404, detail="Попытка прохождения теста не найдена")
-    
+
     # Завершаем попытку
     test_attempt.end_time = datetime.utcnow()
-    
+
     # Обрабатываем данные формы
     form_data = await request.form()
-    
+
     # Получаем выбранные категории, если они были переданы
     selected_categories = []
     for key, value in form_data.items():
         if key.startswith('selected_category_'):
             selected_categories.append(value)
-    
+
     # Получаем выбранные уровни сложности, если они были переданы
     selected_difficulties = []
     for key, value in form_data.items():
         if key.startswith('selected_difficulty_'):
             selected_difficulties.append(value)
-    
+
     # Словарь для результатов
     results = {
         "score": 0,
@@ -227,27 +228,27 @@ async def submit_test(
         "total_questions": 0,
         "details": []
     }
-    
+
     # Обрабатываем ответы
     for key, value in form_data.items():
         if key.startswith('question_') and key != 'test_attempt_id':
             question_id = int(key.replace('question_', ''))
             answer_id = int(value)
-            
+
             # Получаем вопрос и ответ
             question = db.query(Question).filter(Question.id == question_id).first()
             answer = db.query(Answer).filter(Answer.id == answer_id).first()
-            
+
             if question and answer:
                 results["total_questions"] += 1
                 results["max_score"] += 1
-                
+
                 # Проверяем правильность ответа
                 is_correct = answer.is_correct
                 if is_correct:
                     results["correct_answers"] += 1
                     results["score"] += 1
-                
+
                 # Сохраняем ответ пользователя
                 user_answer = UserAnswer(
                     test_attempt_id=test_attempt.id,
@@ -256,13 +257,13 @@ async def submit_test(
                     is_correct=is_correct
                 )
                 db.add(user_answer)
-                
+
                 # Добавляем детали для отображения
                 correct_answer = db.query(Answer).filter(
                     Answer.question_id == question_id,
                     Answer.is_correct == True  # noqa: E712
                 ).first()
-                
+
                 results["details"].append({
                     "question_id": question_id,
                     "question_text": question.text,
@@ -270,18 +271,18 @@ async def submit_test(
                     "is_correct": is_correct,
                     "correct_answer": correct_answer.text if correct_answer else "Нет правильного ответа"
                 })
-    
+
     # Обновляем результаты теста
     test_attempt.score = results["score"]
     test_attempt.max_score = results["max_score"]
     db.commit()
-    
+
     # Рассчитываем процент правильных ответов
     results["percentage"] = (results["score"] / results["max_score"]) * 100 if results["max_score"] > 0 else 0
-    
+
     # Отображаем результаты
     return templates.TemplateResponse(
-        "test_results.html", 
+        "test_results.html",
         {
             "request": request,
             "title": "Результаты теста",
@@ -305,7 +306,7 @@ async def test_history(
         TestAttempt.user_id == user.id,
         TestAttempt.end_time.is_not(None)  # noqa: E711
     ).order_by(TestAttempt.end_time.desc()).all()
-    
+
     return templates.TemplateResponse(
         "test_history.html",
         {
@@ -323,4 +324,4 @@ async def read_question(question_id: int, db: Session = Depends(get_db)):
     question = db.query(Question).filter(Question.id == question_id).first()
     if question is None:
         raise HTTPException(status_code=404, detail="Вопрос не найден")
-    return question 
+    return question

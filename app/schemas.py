@@ -1,6 +1,7 @@
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
 
 
 class AnswerBase(BaseModel):
@@ -83,7 +84,7 @@ class UserAnswerResponse(BaseModel):
     question_id: int
     answer_id: int
     is_correct: bool
-    
+
     class Config:
         orm_mode = True
 
@@ -106,7 +107,7 @@ class TestAttemptResponse(TestAttemptBase):
     id: int
     user_id: int
     user_answers: List[UserAnswerResponse] = []
-    
+
     class Config:
         orm_mode = True
 
