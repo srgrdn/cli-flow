@@ -18,6 +18,7 @@
 | `SSH_PRIVATE_KEY` | Приватный SSH ключ для доступа к ВМ | `-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----` |
 | `VM_HOST` | IP-адрес или домен удаленной ВМ | `91.107.121.133` или `example.com` |
 | `SSH_USER` | Имя пользователя для SSH доступа к ВМ | `deployer` |
+| `SSH_PORT` | Порт SSH сервера на удаленной ВМ | `2233` или `22` |
 | `PROJECT_PATH` | Путь к проекту на ВМ | `/home/deployer/rhcsa-testing` |
 
 ## Настройка удаленной ВМ
@@ -34,13 +35,13 @@
    ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
    
    # Копирование публичного ключа на сервер
-   ssh-copy-id deployer@your_vm_host
+   ssh-copy-id -p 2233 deployer@your_vm_host
    ```
 
 3. Клонирование репозитория на ВМ:
    ```bash
    # Подключитесь к ВМ
-   ssh deployer@your_vm_host
+   ssh -p 2233 deployer@your_vm_host
    
    # Создайте директорию для проекта и клонируйте репозиторий
    mkdir -p /home/deployer/rhcsa-testing
