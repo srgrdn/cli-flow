@@ -51,14 +51,35 @@
     <div class="container mt-5">
         <h1 class="mb-4 text-center">Теоретический тест RHCSA</h1>
         
-        {% if selected_categories %}
         <div class="alert alert-info mb-4">
-            <i class="fas fa-filter me-2"></i>Тестирование по выбранным темам: 
-            {% for category in selected_categories %}
-            <span class="badge bg-primary me-1">{{ category }}</span>
-            {% endfor %}
+            <div class="row">
+                {% if selected_categories %}
+                <div class="col-md-6 mb-2 mb-md-0">
+                    <i class="fas fa-tags me-2"></i><strong>Темы:</strong> 
+                    {% for category in selected_categories %}
+                    <span class="badge bg-primary me-1">{{ category }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if selected_difficulties %}
+                <div class="col-md-6">
+                    <i class="fas fa-signal me-2"></i><strong>Сложность:</strong> 
+                    {% for difficulty in selected_difficulties %}
+                    <span class="badge bg-{{ difficulty == 'easy' and 'success' or difficulty == 'medium' and 'warning' or 'danger' }} me-1">
+                        {% if difficulty == 'easy' %}Легкая{% elif difficulty == 'medium' %}Средняя{% else %}Сложная{% endif %}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if not selected_categories and not selected_difficulties %}
+                <div class="col-12">
+                    <i class="fas fa-info-circle me-2"></i>Тестирование по всем темам и уровням сложности
+                </div>
+                {% endif %}
+            </div>
         </div>
-        {% endif %}
         
         <form id="test-form" method="post" action="/questions/submit">
             <input type="hidden" name="test_attempt_id" value="{{ test_attempt_id }}">
@@ -66,6 +87,12 @@
             {% if selected_categories %}
                 {% for category in selected_categories %}
                 <input type="hidden" name="selected_category_{{ loop.index }}" value="{{ category }}">
+                {% endfor %}
+            {% endif %}
+            
+            {% if selected_difficulties %}
+                {% for difficulty in selected_difficulties %}
+                <input type="hidden" name="selected_difficulty_{{ loop.index }}" value="{{ difficulty }}">
                 {% endfor %}
             {% endif %}
             

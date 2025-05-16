@@ -49,19 +49,20 @@
     </nav>
 
     <div class="container mt-5">
-        <h1 class="mb-4 text-center">Выбор тем для тестирования</h1>
+        <h1 class="mb-4 text-center">Выбор параметров для тестирования</h1>
         
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Выберите темы для тестирования</h5>
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Выберите темы и сложность для тестирования</h5>
             </div>
             <div class="card-body">
                 <form id="categories-form" method="post" action="/questions/start_test">
                     <div class="alert alert-info mb-4">
-                        <i class="fas fa-info-circle me-2"></i>Выберите одну или несколько тем для тестирования. Если не выбрать ни одной темы, тест будет содержать вопросы из всех доступных тем.
+                        <i class="fas fa-info-circle me-2"></i>Выберите одну или несколько тем и уровней сложности для тестирования. Если не выбрать ни одного параметра, тест будет содержать вопросы из всех тем и сложностей.
                     </div>
                     
-                    <div class="mb-3">
+                    <h5 class="mb-3"><i class="fas fa-tags me-2"></i>Темы тестирования</h5>
+                    <div class="mb-4">
                         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
                             {% for category in categories %}
                             <div class="col">
@@ -69,6 +70,28 @@
                                     <input class="form-check-input" type="checkbox" name="categories" id="category_{{ loop.index }}" value="{{ category }}">
                                     <label class="form-check-label" for="category_{{ loop.index }}">
                                         {{ category }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <h5 class="mb-3"><i class="fas fa-signal me-2"></i>Уровень сложности</h5>
+                    <div class="mb-4">
+                        <div class="row row-cols-1 row-cols-md-3 g-3">
+                            {% for difficulty in difficulties %}
+                            <div class="col">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="difficulties" id="difficulty_{{ loop.index }}" value="{{ difficulty }}">
+                                    <label class="form-check-label" for="difficulty_{{ loop.index }}">
+                                        {% if difficulty == 'easy' %}
+                                            <span class="badge bg-success">Легкий</span>
+                                        {% elif difficulty == 'medium' %}
+                                            <span class="badge bg-warning text-dark">Средний</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Сложный</span>
+                                        {% endif %}
                                     </label>
                                 </div>
                             </div>
