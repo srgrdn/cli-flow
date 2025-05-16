@@ -19,6 +19,7 @@ router = APIRouter(
 templates = Jinja2Templates(directory="templates")
 security = HTTPBearer(auto_error=False)
 
+
 # Проверка, что пользователь является администратором
 async def check_admin_access(
     request: Request,
@@ -32,49 +33,50 @@ async def check_admin_access(
         auth_token = credentials.credentials
     elif token:
         auth_token = token
-    
+
     if not auth_token:
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Не авторизован. Токен не найден."
         )
-    
+
     try:
         # Верификация токена
         payload = AuthService.decode_access_token(auth_token)
         if payload is None or "sub" not in payload:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail="Недействительный токен авторизации."
             )
-        
+
         # Проверка пользователя
         user = db.query(User).filter(User.email == payload["sub"]).first()
         if user is None:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail="Пользователь не найден."
             )
-        
+
         # Проверка прав администратора
         if not user.is_superuser:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail="Недостаточно прав для доступа к административной панели."
             )
-        
+
         return user
-    
+
     except Exception as e:
         raise HTTPException(
             status_code=403,
             detail=f"Ошибка авторизации: {str(e)}"
         )
 
+
 # Главная страница админки
 @router.get("/", response_model=None)
 async def admin_dashboard(
-    request: Request, 
+    request: Request,
     token: Optional[str] = Query(None),
     admin: User = Depends(check_admin_access),
     db: Session = Depends(get_db)
@@ -83,12 +85,12 @@ async def admin_dashboard(
     # Получаем статистику
     users_count = db.query(User).count()
     questions_count = db.query(Question).count()
-    
+
     return templates.TemplateResponse(
-        "admin/dashboard.html", 
+        "admin/dashboard.html",
         {
-            "request": request, 
-            "title": "Админ-панель", 
+            "request": request,
+            "title": "Админ-панель",
             "admin": admin,
             "users_count": users_count,
             "questions_count": questions_count,
@@ -97,34 +99,36 @@ async def admin_dashboard(
         }
     )
 
+
 # Управление пользователями
 @router.get("/users", response_model=None)
 async def admin_users(
-    request: Request, 
+    request: Request,
     token: Optional[str] = Query(None),
     admin: User = Depends(check_admin_access),
     db: Session = Depends(get_db)
 ):
     """Список пользователей"""
     users = db.query(User).all()
-    
+
     return templates.TemplateResponse(
-        "admin/users.html", 
+        "admin/users.html",
         {
-            "request": request, 
-            "title": "Управление пользователями", 
-            "admin": admin,
+            "request": request,
+            "title": "Управление пользователями",
             "users": users,
             "token": token
         }
     )
 
+
 # Редактирование пользователя
 @router.post("/users/{user_id}", response_model=None)
 async def admin_edit_user(
     user_id: int,
-    is_active: bool = Form(...),
-    is_superuser: bool = Form(...),
+    request: Request,
+    is_active: str = Form(...),
+    is_superuser: str = Form(...),
     token: Optional[str] = Query(None),
     admin: User = Depends(check_admin_access),
     db: Session = Depends(get_db)
@@ -133,57 +137,61 @@ async def admin_edit_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-    
-    user.is_active = is_active
-    user.is_superuser = is_superuser
+
+    # Convert string values to boolean
+    user.is_active = is_active.lower() == "true"
+    user.is_superuser = is_superuser.lower() == "true"
     db.commit()
-    
+
     # Перенаправляем на страницу со списком пользователей, добавляя токен
     redirect_url = "/admin/users"
     if token:
         redirect_url += f"?token={token}"
-    
+
     return RedirectResponse(url=redirect_url, status_code=303)
+
 
 # Управление вопросами
 @router.get("/questions", response_model=None)
 async def admin_questions(
-    request: Request, 
+    request: Request,
     token: Optional[str] = Query(None),
     admin: User = Depends(check_admin_access),
     db: Session = Depends(get_db)
 ):
     """Список вопросов"""
     questions = db.query(Question).all()
-    
+
     return templates.TemplateResponse(
-        "admin/questions.html", 
+        "admin/questions.html",
         {
-            "request": request, 
-            "title": "Управление вопросами", 
+            "request": request,
+            "title": "Управление вопросами",
             "admin": admin,
             "questions": questions,
             "token": token
         }
     )
 
+
 # Форма добавления вопроса
 @router.get("/questions/add", response_model=None)
 async def admin_add_question_form(
-    request: Request, 
+    request: Request,
     token: Optional[str] = Query(None),
     admin: User = Depends(check_admin_access)
 ):
     """Форма добавления вопроса"""
     return templates.TemplateResponse(
-        "admin/question_form.html", 
+        "admin/question_form.html",
         {
-            "request": request, 
-            "title": "Добавление вопроса", 
+            "request": request,
+            "title": "Добавление вопроса",
             "admin": admin,
             "token": token
         }
     )
+
 
 # Добавление вопроса
 @router.post("/questions/add", response_model=None)
@@ -207,7 +215,7 @@ async def admin_add_question(
     db.add(question)
     db.commit()
     db.refresh(question)
-    
+
     # Добавляем варианты ответов
     for i in range(len(answers_text)):
         answer = Answer(
@@ -216,15 +224,16 @@ async def admin_add_question(
             question_id=question.id
         )
         db.add(answer)
-    
+
     db.commit()
-    
+
     # Перенаправляем на страницу со списком вопросов, добавляя токен
     redirect_url = "/admin/questions"
     if token:
         redirect_url += f"?token={token}"
-    
+
     return RedirectResponse(url=redirect_url, status_code=303)
+
 
 # Удаление вопроса
 @router.get("/questions/{question_id}/delete", response_model=None)
@@ -239,10 +248,10 @@ async def admin_delete_question(
     if question:
         db.delete(question)
         db.commit()
-    
+
     # Перенаправляем на страницу со списком вопросов, добавляя токен
     redirect_url = "/admin/questions"
     if token:
         redirect_url += f"?token={token}"
-    
-    return RedirectResponse(url=redirect_url, status_code=303) 
+
+    return RedirectResponse(url=redirect_url, status_code=303)
