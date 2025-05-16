@@ -1,6 +1,7 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from database import Base
 
@@ -51,7 +52,7 @@ class TestAttempt(Base):
     end_time = Column(DateTime, nullable=True)
     score = Column(Integer, default=0)
     max_score = Column(Integer, default=0)
-    
+
     # Связь с пользователем
     user = relationship("User", back_populates="test_attempts")
     # Связь с ответами на вопросы
@@ -67,7 +68,7 @@ class UserAnswer(Base):
     question_id = Column(Integer, ForeignKey("questions.id"))
     answer_id = Column(Integer, ForeignKey("answers.id"))
     is_correct = Column(Boolean, default=False)
-    
+
     # Связи
     test_attempt = relationship("TestAttempt", back_populates="user_answers")
     question = relationship("Question")
