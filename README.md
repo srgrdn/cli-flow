@@ -13,11 +13,15 @@
 - **Frontend**: Bootstrap 5, Font Awesome
 - **Аутентификация**: JWT-токены
 - **Контейнеризация**: Docker, Docker Compose
+- **CI/CD**: GitHub Actions
 
 ## Структура проекта
 
 ```bash
 .
+├── .github/
+│   └── workflows/        # GitHub Actions workflow файлы
+│       └── deploy.yml    # Конфигурация CI/CD для деплоя
 ├── app/
 │   ├── routers/           # Маршрутизаторы API
 │   │   ├── auth.py        # Модуль аутентификации
@@ -36,7 +40,8 @@
 │   ├── init_db.py         # Инициализация БД
 │   ├── Dockerfile         # Dockerfile для сборки контейнера
 │   └── requirements.txt   # Зависимости проекта
-└── docker-compose.yml     # Конфигурация Docker Compose
+├── docker-compose.yml     # Конфигурация Docker Compose
+└── DEPLOY.md              # Инструкции по настройке деплоя
 ```
 
 ## Запуск проекта
@@ -58,16 +63,26 @@ cd cli-flow
 2. Запустите контейнеры с помощью Docker Compose:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 3. Инициализируйте базу данных с тестовыми данными (при первом запуске):
 
 ```bash
-docker-compose exec app python init_db.py
+docker compose exec app python init_db.py
 ```
 
 4. Приложение будет доступно по адресу: <http://localhost:8000>
+
+## CI/CD
+
+Проект настроен для автоматического развертывания на удаленном сервере при пуше в ветку `main` или при мерже Pull Request в `main`.
+
+Для настройки CI/CD:
+1. Создайте необходимые секреты в GitHub репозитории
+2. Подготовьте удаленную ВМ согласно инструкциям в [DEPLOY.md](DEPLOY.md)
+
+Подробная информация о настройке CI/CD доступна в файле [DEPLOY.md](DEPLOY.md).
 
 ## Функциональность
 
