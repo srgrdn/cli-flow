@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
 from models import User, Question, Answer
-from schemas import QuestionCreate, QuestionResponse, UserCreate
 from routers.auth import AuthService
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from datetime import datetime
@@ -116,6 +115,7 @@ async def admin_users(
         {
             "request": request,
             "title": "Управление пользователями",
+            "admin": admin,
             "users": users,
             "token": token
         }
