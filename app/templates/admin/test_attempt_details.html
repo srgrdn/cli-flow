@@ -1,0 +1,125 @@
+{% extends "admin/base.html" %}
+
+{% block header_buttons %}
+<div>
+    <a href="/admin/users/{{ user.id }}/history{% if token %}?token={{ token }}{% endif %}" class="btn btn-sm btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Назад к истории пользователя
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Информация о попытке тестирования #{{ test_attempt.id }}</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Пользователь:</strong> {{ user.email }}</p>
+                <p><strong>Дата начала:</strong> {{ test_attempt.start_time.strftime('%d.%m.%Y %H:%M:%S') }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Дата завершения:</strong> 
+                    {% if test_attempt.end_time %}
+                    {{ test_attempt.end_time.strftime('%d.%m.%Y %H:%M:%S') }}
+                    {% else %}
+                    <span class="badge bg-warning">Не завершен</span>
+                    {% endif %}
+                </p>
+                <p><strong>Результат:</strong> 
+                    {% if test_attempt.end_time %}
+                    <span class="badge {% if (test_attempt.score / test_attempt.max_score * 100) >= 70 %}bg-success{% elif (test_attempt.score / test_attempt.max_score * 100) >= 40 %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ test_attempt.score }} / {{ test_attempt.max_score }} 
+                        ({{ "%.1f"|format(test_attempt.score / test_attempt.max_score * 100) if test_attempt.max_score > 0 else 0 }}%)
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">Нет данных</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Ответы пользователя</h5>
+    </div>
+    <div class="card-body">
+        {% if user_answers %}
+        <div class="accordion" id="answersAccordion">
+            {% for user_answer in user_answers %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ user_answer.id }}">
+                    <button class="accordion-button {% if not user_answer.is_correct %}bg-light text-danger{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ user_answer.id }}" aria-expanded="{% if not user_answer.is_correct %}true{% else %}false{% endif %}" aria-controls="collapse{{ user_answer.id }}">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <span class="me-2">Вопрос #{{ user_answer.question.id }}:</span>
+                                {{ user_answer.question.text|truncate(50) }}
+                            </div>
+                            <span class="badge {% if user_answer.is_correct %}bg-success{% else %}bg-danger{% endif %} ms-2">
+                                {% if user_answer.is_correct %}Верно{% else %}Неверно{% endif %}
+                            </span>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse{{ user_answer.id }}" class="accordion-collapse collapse {% if not user_answer.is_correct %}show{% endif %}" aria-labelledby="heading{{ user_answer.id }}" data-bs-parent="#answersAccordion">
+                    <div class="accordion-body">
+                        <div class="mb-3">
+                            <strong>Полный текст вопроса:</strong>
+                            <p>{{ user_answer.question.text }}</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Категория:</strong> {{ user_answer.question.category }}
+                            <br>
+                            <strong>Сложность:</strong> 
+                            {% if user_answer.question.difficulty == 'easy' %}
+                            <span class="badge bg-success">Легкий</span>
+                            {% elif user_answer.question.difficulty == 'medium' %}
+                            <span class="badge bg-warning">Средний</span>
+                            {% else %}
+                            <span class="badge bg-danger">Сложный</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Ответ пользователя:</strong>
+                            <div class="mt-2 p-2 border {% if user_answer.is_correct %}border-success{% else %}border-danger{% endif %} rounded">
+                                {{ user_answer.answer.text }}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <strong>Все варианты ответов:</strong>
+                            <ul class="list-group mt-2">
+                                {% for answer in user_answer.question.answers %}
+                                <li class="list-group-item {% if answer.is_correct %}list-group-item-success{% endif %} {% if answer.id == user_answer.answer_id and not answer.is_correct %}list-group-item-danger{% endif %}">
+                                    {{ answer.text }}
+                                    {% if answer.is_correct %}
+                                    <span class="badge bg-success float-end">Правильный ответ</span>
+                                    {% endif %}
+                                    {% if answer.id == user_answer.answer_id and not answer.is_correct %}
+                                    <span class="badge bg-danger float-end">Выбран пользователем</span>
+                                    {% endif %}
+                                    {% if answer.id == user_answer.answer_id and answer.is_correct %}
+                                    <span class="badge bg-success float-end">Выбран пользователем (верно)</span>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>Нет данных об ответах пользователя.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

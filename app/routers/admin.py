@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Answer, Question, User, UserAnswer
+from models import Answer, Question, TestAttempt, User, UserAnswer
 from routers.auth import AuthService
 
 # Setup logger
@@ -180,11 +180,30 @@ async def admin_edit_user(
 async def admin_questions(
     request: Request,
     token: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    difficulty: Optional[str] = Query(None),
     admin: User = Depends(check_admin_access),
     db: Session = Depends(get_db)
 ):
-    """Список вопросов"""
-    questions = db.query(Question).all()
+    """Список вопросов с возможностью фильтрации"""
+    # Базовый запрос
+    query = db.query(Question)
+
+    # Применяем фильтры, если они указаны
+    if category:
+        query = query.filter(Question.category == category)
+
+    if difficulty:
+        query = query.filter(Question.difficulty == difficulty)
+
+    questions = query.all()
+
+    # Получаем все уникальные категории для фильтра
+    categories = db.query(Question.category).distinct().all()
+    categories = [cat[0] for cat in categories]
+
+    # Получаем все уникальные уровни сложности для фильтра
+    difficulties = ["easy", "medium", "hard"]
 
     logger.info(f"Question management accessed by admin: {admin.email}")
     return templates.TemplateResponse(
@@ -194,6 +213,10 @@ async def admin_questions(
             "title": "Управление вопросами",
             "admin": admin,
             "questions": questions,
+            "categories": categories,
+            "difficulties": difficulties,
+            "selected_category": category,
+            "selected_difficulty": difficulty,
             "token": token
         }
     )
@@ -381,3 +404,79 @@ async def admin_update_question(
         redirect_url += f"?token={token}"
 
     return RedirectResponse(url=redirect_url, status_code=303)
+
+
+# Просмотр истории тестирования пользователя
+@router.get("/users/{user_id}/history", response_model=None)
+async def admin_user_test_history(
+    user_id: int,
+    request: Request,
+    token: Optional[str] = Query(None),
+    admin: User = Depends(check_admin_access),
+    db: Session = Depends(get_db)
+):
+    """История тестирования пользователя"""
+    # Проверяем существование пользователя
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        logger.warning(f"Admin {admin.email} attempted to view history of non-existent user ID: {user_id}")
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    # Получаем историю тестирования пользователя
+    test_attempts = db.query(TestAttempt).filter(
+        TestAttempt.user_id == user_id
+    ).order_by(TestAttempt.start_time.desc()).all()
+
+    logger.info(f"Admin {admin.email} viewed test history of user {user.email} (ID: {user_id})")
+
+    return templates.TemplateResponse(
+        "admin/user_test_history.html",
+        {
+            "request": request,
+            "title": f"История тестирования пользователя {user.email}",
+            "admin": admin,
+            "user": user,
+            "test_attempts": test_attempts,
+            "token": token
+        }
+    )
+
+
+# Просмотр деталей попытки тестирования
+@router.get("/test_attempts/{attempt_id}", response_model=None)
+async def admin_test_attempt_details(
+    attempt_id: int,
+    request: Request,
+    token: Optional[str] = Query(None),
+    admin: User = Depends(check_admin_access),
+    db: Session = Depends(get_db)
+):
+    """Подробности попытки тестирования"""
+    # Получаем попытку тестирования
+    test_attempt = db.query(TestAttempt).filter(TestAttempt.id == attempt_id).first()
+    if not test_attempt:
+        logger.warning(f"Admin {admin.email} attempted to view non-existent test attempt ID: {attempt_id}")
+        raise HTTPException(status_code=404, detail="Попытка тестирования не найдена")
+
+    # Получаем пользователя
+    user = db.query(User).filter(User.id == test_attempt.user_id).first()
+
+    # Получаем ответы пользователя с деталями вопросов
+    user_answers = db.query(UserAnswer).filter(
+        UserAnswer.test_attempt_id == attempt_id
+    ).all()
+
+    logger.info(f"Admin {admin.email} viewed test attempt details (ID: {attempt_id}) of user {user.email}")
+
+    return templates.TemplateResponse(
+        "admin/test_attempt_details.html",
+        {
+            "request": request,
+            "title": f"Детали попытки тестирования #{attempt_id}",
+            "admin": admin,
+            "user": user,
+            "test_attempt": test_attempt,
+            "user_answers": user_answers,
+            "token": token
+        }
+    )

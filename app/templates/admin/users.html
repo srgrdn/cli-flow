@@ -43,6 +43,9 @@
                     <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editUser{{ user.id }}Modal">
                         <i class="fas fa-edit"></i>
                     </button>
+                    <a href="/admin/users/{{ user.id }}/history{% if token %}?token={{ token }}{% endif %}" class="btn btn-sm btn-info">
+                        <i class="fas fa-history"></i>
+                    </a>
                 </td>
             </tr>
             {% endfor %}
