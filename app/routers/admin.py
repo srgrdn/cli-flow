@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Optional
 
@@ -10,6 +11,9 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Answer, Question, User, UserAnswer
 from routers.auth import AuthService
+
+# Setup logger
+logger = logging.getLogger("admin")
 
 router = APIRouter(
     prefix="/admin",
@@ -36,6 +40,7 @@ async def check_admin_access(
         auth_token = token
 
     if not auth_token:
+        logger.warning(f"Admin access attempt without token from IP: {request.client.host}")
         raise HTTPException(
             status_code=403,
             detail="Не авторизован. Токен не найден."
@@ -45,6 +50,7 @@ async def check_admin_access(
         # Верификация токена
         payload = AuthService.decode_access_token(auth_token)
         if payload is None or "sub" not in payload:
+            logger.warning(f"Admin access attempt with invalid token from IP: {request.client.host}")
             raise HTTPException(
                 status_code=403,
                 detail="Недействительный токен авторизации."
@@ -53,6 +59,7 @@ async def check_admin_access(
         # Проверка пользователя
         user = db.query(User).filter(User.email == payload["sub"]).first()
         if user is None:
+            logger.warning(f"Admin access attempt with non-existent user: {payload.get('sub', 'unknown')} from IP: {request.client.host}")
             raise HTTPException(
                 status_code=403,
                 detail="Пользователь не найден."
@@ -60,14 +67,17 @@ async def check_admin_access(
 
         # Проверка прав администратора
         if not user.is_superuser:
+            logger.warning(f"Admin access attempt by non-admin user: {user.email} from IP: {request.client.host}")
             raise HTTPException(
                 status_code=403,
                 detail="Недостаточно прав для доступа к административной панели."
             )
 
+        logger.info(f"Admin access granted to: {user.email} from IP: {request.client.host}")
         return user
 
     except Exception as e:
+        logger.error(f"Admin access error: {str(e)} from IP: {request.client.host}")
         raise HTTPException(
             status_code=403,
             detail=f"Ошибка авторизации: {str(e)}"
@@ -87,6 +97,7 @@ async def admin_dashboard(
     users_count = db.query(User).count()
     questions_count = db.query(Question).count()
 
+    logger.info(f"Admin dashboard accessed by: {admin.email}")
     return templates.TemplateResponse(
         "admin/dashboard.html",
         {
@@ -112,6 +123,7 @@ async def admin_users(
     """Список пользователей"""
     users = db.query(User).all()
 
+    logger.info(f"User management accessed by admin: {admin.email}")
     return templates.TemplateResponse(
         "admin/users.html",
         {
@@ -138,12 +150,22 @@ async def admin_edit_user(
     """Редактирование пользователя"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
+        logger.warning(f"Admin {admin.email} attempted to edit non-existent user ID: {user_id}")
         raise HTTPException(status_code=404, detail="Пользователь не найден")
 
     # Convert string values to boolean
+    old_is_active = user.is_active
+    old_is_superuser = user.is_superuser
+
     user.is_active = is_active.lower() == "true"
     user.is_superuser = is_superuser.lower() == "true"
     db.commit()
+
+    logger.info(
+        f"User {user.email} (ID: {user_id}) updated by admin {admin.email}: "
+        f"is_active: {old_is_active} -> {user.is_active}, "
+        f"is_superuser: {old_is_superuser} -> {user.is_superuser}"
+    )
 
     # Перенаправляем на страницу со списком пользователей, добавляя токен
     redirect_url = "/admin/users"
@@ -164,6 +186,7 @@ async def admin_questions(
     """Список вопросов"""
     questions = db.query(Question).all()
 
+    logger.info(f"Question management accessed by admin: {admin.email}")
     return templates.TemplateResponse(
         "admin/questions.html",
         {
@@ -184,6 +207,7 @@ async def admin_add_question_form(
     admin: User = Depends(check_admin_access)
 ):
     """Форма добавления вопроса"""
+    logger.info(f"Question add form accessed by admin: {admin.email}")
     return templates.TemplateResponse(
         "admin/question_form.html",
         {
@@ -229,6 +253,11 @@ async def admin_add_question(
 
     db.commit()
 
+    logger.info(
+        f"New question added by admin {admin.email}: "
+        f"ID: {question.id}, Category: {category}, Difficulty: {difficulty}"
+    )
+
     # Перенаправляем на страницу со списком вопросов, добавляя токен
     redirect_url = "/admin/questions"
     if token:
@@ -248,17 +277,16 @@ async def admin_delete_question(
     """Удаление вопроса"""
     question = db.query(Question).filter(Question.id == question_id).first()
     if question:
-        # Сначала удаляем записи в user_answers, связанные с ответами на этот вопрос
-        answers = db.query(Answer).filter(Answer.question_id == question_id).all()
-        answer_ids = [answer.id for answer in answers]
-
-        if answer_ids:
-            db.query(UserAnswer).filter(UserAnswer.answer_id.in_(answer_ids)).delete(synchronize_session=False)
-            db.commit()
-
-        # Теперь можем удалить сам вопрос (и связанные ответы через каскад)
+        logger.info(f"Question ID: {question_id} deleted by admin: {admin.email}")
+        # Удаляем связанные ответы
+        db.query(Answer).filter(Answer.question_id == question_id).delete()
+        # Удаляем связанные ответы пользователей
+        db.query(UserAnswer).filter(UserAnswer.question_id == question_id).delete()
+        # Удаляем сам вопрос
         db.delete(question)
         db.commit()
+    else:
+        logger.warning(f"Admin {admin.email} attempted to delete non-existent question ID: {question_id}")
 
     # Перенаправляем на страницу со списком вопросов, добавляя токен
     redirect_url = "/admin/questions"

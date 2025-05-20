@@ -1,10 +1,59 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs
+logs/
+*.log
+app/logs/
+
+# Database
+*.sqlite3
+*.db
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+.dockerignore
+.docker/
+
+# Cache
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# OS specific
+.DS_Store
+Thumbs.db
 
 # Distribution / packaging
 .Python
@@ -75,6 +124,3 @@ Dockerfile*
 # System files
 .DS_Store
 Thumbs.db
-
-# Other
-*.sqlite3
