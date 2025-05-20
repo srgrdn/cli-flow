@@ -266,3 +266,90 @@ async def admin_delete_question(
         redirect_url += f"?token={token}"
 
     return RedirectResponse(url=redirect_url, status_code=303)
+
+
+# Форма редактирования вопроса
+@router.get("/questions/{question_id}/edit", response_model=None)
+async def admin_edit_question_form(
+    question_id: int,
+    request: Request,
+    token: Optional[str] = Query(None),
+    admin: User = Depends(check_admin_access),
+    db: Session = Depends(get_db)
+):
+    """Форма редактирования вопроса"""
+    question = db.query(Question).filter(Question.id == question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Вопрос не найден")
+    
+    answers = db.query(Answer).filter(Answer.question_id == question_id).all()
+    
+    return templates.TemplateResponse(
+        "admin/question_form.html",
+        {
+            "request": request,
+            "title": "Редактирование вопроса",
+            "admin": admin,
+            "token": token,
+            "question": question,
+            "answers": answers,
+            "edit_mode": True
+        }
+    )
+
+
+# Обновление вопроса
+@router.post("/questions/{question_id}/edit", response_model=None)
+async def admin_update_question(
+    question_id: int,
+    text: str = Form(...),
+    difficulty: str = Form(...),
+    category: str = Form(...),
+    answers_text: List[str] = Form(...),
+    is_correct: List[str] = Form(...),
+    token: Optional[str] = Query(None),
+    admin: User = Depends(check_admin_access),
+    db: Session = Depends(get_db)
+):
+    """Обновление вопроса"""
+    question = db.query(Question).filter(Question.id == question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Вопрос не найден")
+    
+    # Обновляем данные вопроса
+    question.text = text
+    question.difficulty = difficulty
+    question.category = category
+    db.commit()
+    
+    # Удаляем старые ответы
+    old_answers = db.query(Answer).filter(Answer.question_id == question_id).all()
+    answer_ids = [answer.id for answer in old_answers]
+    
+    if answer_ids:
+        # Удаляем связанные user_answers
+        db.query(UserAnswer).filter(UserAnswer.answer_id.in_(answer_ids)).delete(synchronize_session=False)
+        db.commit()
+        
+        # Удаляем старые ответы
+        db.query(Answer).filter(Answer.question_id == question_id).delete(synchronize_session=False)
+        db.commit()
+    
+    # Добавляем новые ответы
+    is_correct_indices = [int(idx) for idx in is_correct]
+    for i in range(len(answers_text)):
+        answer = Answer(
+            text=answers_text[i],
+            is_correct=i in is_correct_indices,
+            question_id=question.id
+        )
+        db.add(answer)
+    
+    db.commit()
+    
+    # Перенаправляем на страницу со списком вопросов, добавляя токен
+    redirect_url = "/admin/questions"
+    if token:
+        redirect_url += f"?token={token}"
+    
+    return RedirectResponse(url=redirect_url, status_code=303)
