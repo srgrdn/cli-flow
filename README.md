@@ -12,6 +12,7 @@
 - **База данных**: PostgreSQL
 - **Frontend**: Bootstrap 5, Font Awesome
 - **Аутентификация**: JWT-токены
+- **Веб-сервер**: Nginx (обратный прокси)
 - **Контейнеризация**: Docker, Docker Compose
 - **CI/CD**: GitHub Actions
 - **Линтер**: Ruff (совместимый с flake8)
@@ -46,6 +47,9 @@
 │   ├── pyproject.toml     # Конфигурация инструментов разработки
 │   ├── lint.sh            # Скрипт для запуска линтера
 │   └── requirements.txt   # Зависимости проекта
+├── nginx/                 # Конфигурация Nginx
+│   ├── nginx.conf         # Основной конфиг Nginx
+│   └── default.conf       # Настройки виртуального хоста
 ├── docker-compose.yml     # Конфигурация Docker Compose
 └── DEPLOY.md              # Инструкции по настройке деплоя
 ```
@@ -78,7 +82,7 @@ docker compose up -d
 docker compose exec app python init_db.py
 ```
 
-4.Приложение будет доступно по адресу: <http://localhost:8000>
+4.Приложение будет доступно по адресу: <http://localhost>
 
 ## Система логирования
 
