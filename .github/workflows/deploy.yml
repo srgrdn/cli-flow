@@ -60,4 +60,4 @@ jobs:
       - name: Verify deployment
         run: |
           echo "Deployment completed successfully!"
-          echo "Application should be available at http://${{ secrets.VM_HOST }}:8000" 
+          echo "Application should be available at http://${{ secrets.VM_HOST }}"
