@@ -35,8 +35,66 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Проверяем права администратора
             checkAdminRights(token);
+            
+            // Обновляем UI для авторизованного пользователя
+            updateAuthUI(true);
         } catch (e) {
             console.error('Ошибка при разборе токена:', e);
+        }
+    } else {
+        // Пользователь не авторизован
+        updateAuthUI(false);
+    }
+    
+    // Обновление UI в зависимости от статуса авторизации
+    function updateAuthUI(isAuthenticated) {
+        // Элементы для авторизованных пользователей
+        const authUserElements = document.querySelectorAll('.auth-user, .auth-logout');
+        // Элементы для неавторизованных пользователей
+        const nonAuthElements = document.querySelectorAll('.auth-login, .auth-register');
+        
+        if (isAuthenticated) {
+            // Показываем элементы для авторизованных пользователей
+            authUserElements.forEach(el => el.style.display = 'block');
+            // Скрываем элементы для неавторизованных пользователей
+            nonAuthElements.forEach(el => el.style.display = 'none');
+            
+            // Если есть токен, декодируем его для получения email пользователя
+            const token = getCookie('access_token');
+            if (token) {
+                try {
+                    const base64Url = token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const payload = JSON.parse(window.atob(base64));
+                    
+                    // Устанавливаем email пользователя, если элемент существует
+                    const userEmailElement = document.getElementById('user-email');
+                    if (userEmailElement) {
+                        userEmailElement.textContent = payload.sub;
+                    }
+                    
+                    // Настраиваем кнопку выхода
+                    const logoutLink = document.getElementById('logout-link');
+                    if (logoutLink) {
+                        logoutLink.addEventListener('click', function(e) {
+                            if (e.currentTarget.getAttribute('href') === '#') {
+                                e.preventDefault();
+                                // Удаляем токен из куки
+                                document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                                // Перенаправляем на главную
+                                window.location.href = '/';
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Ошибка при разборе токена:', e);
+                }
+            }
+        } else {
+            // Показываем элементы для неавторизованных пользователей
+            nonAuthElements.forEach(el => el.style.display = 'block');
+            // Скрываем элементы для авторизованных пользователей
+            authUserElements.forEach(el => el.style.display = 'none');
         }
     }
     
@@ -149,7 +207,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Добавляем токен в URL напрямую
-            window.location.href = this.href + '?token=' + encodeURIComponent(token);
+            const url = new URL(this.href, window.location.origin);
+            url.searchParams.set('token', token);
+            window.location.href = url.toString();
         });
     });
     
