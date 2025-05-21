@@ -2,6 +2,7 @@ import time
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -9,6 +10,7 @@ from database import engine
 from logger import setup_logger
 from models import Base
 from routers import admin, auth, questions
+from routers.auth import AuthService
 
 # Setup logging
 logger = setup_logger()
@@ -61,6 +63,53 @@ async def log_requests(request: Request, call_next):
 
     return response
 
+
+# Middleware для проверки авторизации
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    # Список публичных путей, не требующих авторизации
+    public_paths = [
+        "/login",
+        "/register",
+        "/auth/login",
+        "/auth/register",
+        "/static",
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/redoc"
+    ]
+
+    # Проверяем, является ли текущий путь публичным
+    current_path = request.url.path
+    is_public_path = False
+    for path in public_paths:
+        if current_path == path or current_path.startswith(path + "/"):
+            is_public_path = True
+            break
+
+    # Если путь публичный, пропускаем проверку
+    if is_public_path:
+        return await call_next(request)
+
+    # Проверяем наличие токена авторизации
+    auth_token = request.cookies.get("access_token")
+    if not auth_token:
+        logger.warning(f"Unauthorized access attempt to {current_path} from {request.client.host}")
+        return RedirectResponse(url="/login")
+
+    # Проверяем валидность токена
+    payload = AuthService.decode_access_token(auth_token)
+    if not payload or "sub" not in payload:
+        logger.warning(f"Invalid token access attempt to {current_path} from {request.client.host}")
+        response = RedirectResponse(url="/login")
+        response.delete_cookie(key="access_token")
+        return response
+
+    # Если всё в порядке, продолжаем обработку запроса
+    return await call_next(request)
+
+
 # Подключаем роутеры
 app.include_router(questions.router)
 app.include_router(auth.router)
@@ -70,7 +119,24 @@ app.include_router(admin.router)
 @app.get("/")
 async def home(request: Request):
     """Главная страница приложения"""
-    return templates.TemplateResponse("index.html", {"request": request, "title": "RHCSA Testing Service"})
+    # Проверяем, авторизован ли пользователь
+    user = None
+    auth_token = request.cookies.get("access_token")
+
+    if auth_token:
+        payload = AuthService.decode_access_token(auth_token)
+        if payload and "sub" in payload:
+            # Передаем email пользователя в шаблон
+            user = {"email": payload["sub"]}
+
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "title": "RHCSA Testing Service",
+            "user": user
+        }
+    )
 
 
 @app.get("/login")
