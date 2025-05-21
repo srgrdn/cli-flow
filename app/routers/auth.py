@@ -71,7 +71,7 @@ class AuthService:
         response.set_cookie(
             key="access_token",
             value=token,
-            httponly=True,  # Защита от XSS
+            httponly=False,  # Разрешаем доступ из JavaScript
             max_age=86400,  # 24 часа в секундах
             expires=86400,  # Для совместимости с старыми браузерами
             path="/"
@@ -79,19 +79,38 @@ class AuthService:
         return response
 
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security), db: Session = Depends(get_db)):
-    token = credentials.credentials
-    payload = AuthService.decode_access_token(token)
+def get_current_user(
+    request: Request = None,
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    auth_token = None
+
+    # Приоритет 1: Проверяем куки
+    if request and request.cookies.get("access_token"):
+        auth_token = request.cookies.get("access_token")
+
+    # Приоритет 2: Проверяем заголовок Authorization
+    if not auth_token and credentials:
+        auth_token = credentials.credentials
+
+    if not auth_token:
+        logger.warning("No authentication token provided")
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+    payload = AuthService.decode_access_token(auth_token)
     if payload is None or "sub" not in payload:
         logger.warning("Invalid authentication attempt with token")
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
     user = db.query(User).filter(User.email == payload["sub"]).first()
     if user is None:
         logger.warning(f"Authentication attempt with valid token but user not found: {payload['sub']}")
         raise HTTPException(status_code=401, detail="User not found")
+
     logger.info(f"User authenticated: {user.email}")
     return user
 
@@ -142,26 +161,24 @@ async def login(
 
 
 @router.get("/check-admin")
-async def check_admin_rights(credentials: HTTPAuthorizationCredentials = Security(security), db: Session = Depends(get_db)):
+async def check_admin_rights(
+    request: Request,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Security(security)
+):
     """Проверка прав администратора"""
-    token = credentials.credentials
-    payload = AuthService.decode_access_token(token)
+    try:
+        user = get_current_user(request, credentials, db)
 
-    if not payload or "sub" not in payload:
-        logger.warning("Admin check with invalid token")
-        raise HTTPException(status_code=401, detail="Invalid token")
+        if not user.is_superuser:
+            logger.warning(f"Admin access attempt by non-admin user: {user.email}")
+            raise HTTPException(status_code=403, detail="Not an admin")
 
-    user = db.query(User).filter(User.email == payload["sub"]).first()
-    if not user:
-        logger.warning(f"Admin check for non-existent user: {payload['sub']}")
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if not user.is_superuser:
-        logger.warning(f"Admin access attempt by non-admin user: {user.email}")
-        raise HTTPException(status_code=403, detail="Not an admin")
-
-    logger.info(f"Admin access granted to: {user.email}")
-    return {"is_admin": True}
+        logger.info(f"Admin access granted to: {user.email}")
+        return {"is_admin": True}
+    except HTTPException:
+        # Re-raise the exception
+        raise
 
 
 @router.get("/logout")
