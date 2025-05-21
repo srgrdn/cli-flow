@@ -30,6 +30,24 @@ services:
       - DB_HEALTH_CHECK_INTERVAL=300
     restart: always
 
+  db_backup:
+    build: ./app
+    working_dir: /app
+    command: python backup_db.py --daemon
+    volumes:
+      - ./app:/app
+      - app_logs:/app/logs
+      - db_backups:/app/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/rhcsa_db
+      - BACKUP_INTERVAL=86400
+      - MAX_BACKUPS=7
+      - BACKUP_DIR=/app/backups
+    restart: always
+
   lint:
     build: ./app
     working_dir: /app
@@ -59,3 +77,4 @@ services:
 volumes:
   postgres_data:
   app_logs:
+  db_backups:
