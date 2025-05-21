@@ -2,9 +2,55 @@
 
 import os
 import sys
+from urllib.parse import urlparse
+
+import psycopg2
 
 # Добавляем родительскую директорию в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Получаем URL базы данных из переменной окружения
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/rhcsa_db")
+
+# Парсим URL для получения параметров подключения
+url = urlparse(DATABASE_URL)
+dbname = url.path[1:]  # Убираем начальный слеш
+user = url.username
+password = url.password
+host = url.hostname
+port = url.port
+
+# Создаем базу данных, если она не существует
+try:
+    # Подключаемся к postgres для создания базы данных
+    conn = psycopg2.connect(
+        dbname="postgres",
+        user=user,
+        password=password,
+        host=host,
+        port=port
+    )
+    conn.autocommit = True
+    cursor = conn.cursor()
+
+    # Проверяем существование базы данных
+    cursor.execute(f"SELECT 1 FROM pg_catalog.pg_database WHERE datname = '{dbname}'")
+    exists = cursor.fetchone()
+
+    if not exists:
+        print(f"База данных '{dbname}' не существует. Создаем...")
+        cursor.execute(f"CREATE DATABASE {dbname}")
+        print(f"База данных '{dbname}' успешно создана.")
+    else:
+        print(f"База данных '{dbname}' уже существует.")
+
+    cursor.close()
+    conn.close()
+except Exception as e:
+    print(f"Ошибка при создании базы данных: {e}")
+    sys.exit(1)
+
+# Импортируем после проверки базы данных
 from database import Base, SessionLocal, engine  # noqa: E402
 from models import Answer, Question  # noqa: E402
 

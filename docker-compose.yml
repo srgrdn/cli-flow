@@ -15,6 +15,21 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/rhcsa_db
     restart: always
 
+  db_health_check:
+    build: ./app
+    working_dir: /app
+    command: python check_db.py --daemon
+    volumes:
+      - ./app:/app
+      - app_logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/rhcsa_db
+      - DB_HEALTH_CHECK_INTERVAL=300
+    restart: always
+
   lint:
     build: ./app
     working_dir: /app
