@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Security, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
@@ -130,3 +131,12 @@ async def check_admin_rights(credentials: HTTPAuthorizationCredentials = Securit
 
     logger.info(f"Admin access granted to: {user.email}")
     return {"is_admin": True}
+
+
+@router.get("/logout")
+async def logout():
+    """Выход из системы"""
+    response = RedirectResponse(url="/")
+    response.delete_cookie(key="access_token")
+    logger.info("User logged out")
+    return response

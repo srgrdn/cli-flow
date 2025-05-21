@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Security
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -23,9 +23,10 @@ security = HTTPBearer(auto_error=False)
 
 # Функция для проверки авторизации пользователя
 async def get_current_user(
+    request: Request,
     db: Session = Depends(get_db),
     credentials: Optional[HTTPAuthorizationCredentials] = Security(security),
-    token: Optional[str] = None
+    token: Optional[str] = Query(None)
 ):
     """Получение текущего пользователя из токена"""
     auth_token = None
@@ -33,6 +34,9 @@ async def get_current_user(
         auth_token = credentials.credentials
     elif token:
         auth_token = token
+    else:
+        # Пробуем получить токен из куки
+        auth_token = request.cookies.get("access_token")
 
     if not auth_token:
         raise HTTPException(
