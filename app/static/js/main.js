@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (adminLink) {
                     adminLink.addEventListener('click', function(e) {
                         e.preventDefault();
-                        window.location.href = '/admin/?token=' + encodeURIComponent(token);
+                        window.location.href = '/admin/';
                     });
                 }
             }
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (adminResponse.ok) {
                         // Если пользователь - администратор, перенаправляем в админку
-                        window.location.href = '/admin/?token=' + encodeURIComponent(data.access_token);
+                        window.location.href = '/admin/';
                     } else {
                         // Иначе на главную страницу
                         window.location.href = '/';
@@ -198,18 +198,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Перехват всех ссылок на защищенные страницы
     document.querySelectorAll('a[href^="/questions/test"], a[href^="/questions/history"]').forEach(link => {
         link.addEventListener('click', function(e) {
-            e.preventDefault();
             const token = getCookie('access_token');
             
             if (!token) {
+                e.preventDefault();
                 window.location.href = '/login';
                 return;
             }
             
-            // Добавляем токен в URL напрямую
-            const url = new URL(this.href, window.location.origin);
-            url.searchParams.set('token', token);
-            window.location.href = url.toString();
+            // Токен уже в куки, не нужно добавлять его в URL
         });
     });
     

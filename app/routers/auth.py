@@ -2,7 +2,15 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Security, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    Security,
+    status,
+)
 from fastapi.responses import RedirectResponse
 from fastapi.security import (
     HTTPAuthorizationCredentials,
@@ -26,7 +34,7 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 # Конфигурация безопасности
 SECRET_KEY = os.getenv("SECRET_KEY", "secret-key")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 часа вместо 30 минут
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -55,6 +63,20 @@ class AuthService:
             return payload
         except JWTError:
             return None
+
+    @staticmethod
+    def set_auth_cookie(response: Response, token: str):
+        """Устанавливает куки с токеном авторизации"""
+        # Устанавливаем куки на 24 часа
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,  # Защита от XSS
+            max_age=86400,  # 24 часа в секундах
+            expires=86400,  # Для совместимости с старыми браузерами
+            path="/"
+        )
+        return response
 
 
 security = HTTPBearer()
@@ -93,7 +115,12 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db), request
 
 
 @router.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db), request: Request = None):
+async def login(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+    request: Request = None
+):
     client_ip = request.client.host if request else "unknown"
 
     user = db.query(User).filter(User.email == form_data.username).first()
@@ -107,6 +134,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
     access_token = AuthService.create_access_token(data={"sub": user.email})
     logger.info(f"Successful login: {user.email} from IP: {client_ip}")
+
+    # Устанавливаем токен в куки
+    AuthService.set_auth_cookie(response, access_token)
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -137,6 +168,6 @@ async def check_admin_rights(credentials: HTTPAuthorizationCredentials = Securit
 async def logout():
     """Выход из системы"""
     response = RedirectResponse(url="/")
-    response.delete_cookie(key="access_token")
+    response.delete_cookie(key="access_token", path="/")
     logger.info("User logged out")
     return response
