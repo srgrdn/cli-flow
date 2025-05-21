@@ -30,13 +30,20 @@ async def check_admin_access(
     request: Request,
     db: Session = Depends(get_db),
     credentials: Optional[HTTPAuthorizationCredentials] = Security(security),
-    token: Optional[str] = None
+    token: Optional[str] = Query(None)
 ):
     """Проверка прав администратора"""
     auth_token = None
-    if credentials:
+
+    # Приоритет 1: Проверяем куки
+    auth_token = request.cookies.get("access_token")
+
+    # Приоритет 2: Проверяем заголовок Authorization
+    if not auth_token and credentials:
         auth_token = credentials.credentials
-    elif token:
+
+    # Приоритет 3: Проверяем параметр URL (для обратной совместимости)
+    if not auth_token and token:
         auth_token = token
 
     if not auth_token:

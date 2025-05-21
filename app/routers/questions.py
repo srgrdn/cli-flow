@@ -30,13 +30,17 @@ async def get_current_user(
 ):
     """Получение текущего пользователя из токена"""
     auth_token = None
-    if credentials:
+
+    # Приоритет 1: Проверяем куки
+    auth_token = request.cookies.get("access_token")
+
+    # Приоритет 2: Проверяем заголовок Authorization
+    if not auth_token and credentials:
         auth_token = credentials.credentials
-    elif token:
+
+    # Приоритет 3: Проверяем параметр URL (для обратной совместимости)
+    if not auth_token and token:
         auth_token = token
-    else:
-        # Пробуем получить токен из куки
-        auth_token = request.cookies.get("access_token")
 
     if not auth_token:
         raise HTTPException(
