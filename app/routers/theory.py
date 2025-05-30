@@ -347,12 +347,14 @@ async def unlink_question_from_topic(
 async def theory_page(
     request: Request,
     exam_type: str = "rhcsa",
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Страница с теоретическими материалами"""
     # Получаем корневые темы для выбранного типа экзамена
+    # Используем .filter(TheoryTopic.parent_id.is_(None)) для SQLAlchemy
     root_topics = db.query(TheoryTopic).filter(
-        TheoryTopic.parent_id is None,
+        TheoryTopic.parent_id.is_(None),
         TheoryTopic.exam_type == exam_type
     ).order_by(TheoryTopic.order).all()
 
@@ -362,7 +364,8 @@ async def theory_page(
             "request": request,
             "title": f"Теоретические материалы - {exam_type.upper()}",
             "exam_type": exam_type,
-            "topics": root_topics
+            "topics": root_topics,
+            "user": current_user  # Передаем информацию о пользователе в шаблон
         }
     )
 
@@ -371,7 +374,8 @@ async def theory_page(
 async def theory_topic_page(
     request: Request,
     topic_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Страница с содержимым темы теории"""
     # Загружаем тему с содержимым, ресурсами, дочерними темами и вопросами
@@ -414,6 +418,7 @@ async def theory_topic_page(
             "request": request,
             "title": topic.title,
             "topic": topic,
-            "breadcrumbs": breadcrumbs
+            "breadcrumbs": breadcrumbs,
+            "user": current_user  # Передаем информацию о пользователе в шаблон
         }
     )
