@@ -113,9 +113,17 @@ async def test_page(
     user: User = Depends(get_current_user)
 ):
     """Страница выбора категорий и сложности для теста (требует авторизации)"""
-    # Получаем все уникальные категории из базы данных
-    categories = db.query(Question.category).distinct().all()
-    categories = [cat[0] for cat in categories]
+    # Получаем категории для RHCSA
+    rhcsa_categories = db.query(Question.category).filter(
+        Question.exam_type == 'rhcsa'
+    ).distinct().all()
+    rhcsa_categories = [cat[0] for cat in rhcsa_categories]
+    
+    # Получаем категории для CKA
+    cka_categories = db.query(Question.category).filter(
+        Question.exam_type == 'cka'
+    ).distinct().all()
+    cka_categories = [cat[0] for cat in cka_categories]
 
     # Получаем все уникальные уровни сложности
     difficulties = db.query(Question.difficulty).distinct().all()
@@ -125,9 +133,10 @@ async def test_page(
         "test_categories.html",
         {
             "request": request,
-            "categories": categories,
+            "rhcsa_categories": rhcsa_categories,
+            "cka_categories": cka_categories,
             "difficulties": difficulties,
-            "title": "Выбор параметров для тестирования RHCSA",
+            "title": "Выбор параметров для тестирования",
             "user": user
         }
     )
@@ -141,21 +150,33 @@ async def start_test(
 ):
     """Начать тест с выбранными категориями и сложностью"""
     form_data = await request.form()
-
+    
+    # Отладочная информация
+    print("DEBUG: Form data:")
+    for key, value in form_data.items():
+        print(f"DEBUG: {key}: {value}")
+    
+    # Получаем выбранный тип экзамена
+    exam_type = form_data.get("exam_type", "rhcsa")
+    
     # Получаем выбранные категории из формы
     selected_categories = []
     for key, value in form_data.items():
-        if key == "categories":
+        if key.startswith("category_"):
             selected_categories.append(value)
-
+    
+    print(f"DEBUG: Selected categories: {selected_categories}")
+    
     # Получаем выбранные уровни сложности из формы
     selected_difficulties = []
     for key, value in form_data.items():
-        if key == "difficulties":
+        if key.startswith("difficulty_"):
             selected_difficulties.append(value)
+    
+    print(f"DEBUG: Selected difficulties: {selected_difficulties}")
 
     # Строим запрос на основе выбранных фильтров
-    query = db.query(Question)
+    query = db.query(Question).filter(Question.exam_type == exam_type)
 
     # Применяем фильтр по категориям, если они выбраны
     if selected_categories:
@@ -178,15 +199,19 @@ async def start_test(
     db.commit()
     db.refresh(test_attempt)
 
+    # Определяем заголовок в зависимости от типа экзамена
+    test_title = "Теоретический тест RHCSA" if exam_type == "rhcsa" else "Теоретический тест CKA"
+
     # Add selected categories as hidden fields to pass them to the results page
     return templates.TemplateResponse(
         "test.html",
         {
             "request": request,
             "questions": questions,
-            "title": "Теоретический тест RHCSA",
+            "title": test_title,
             "test_attempt_id": test_attempt.id,
             "user": user,
+            "exam_type": exam_type,
             "selected_categories": selected_categories,
             "selected_difficulties": selected_difficulties
         }
@@ -216,16 +241,21 @@ async def submit_test(
     # Обрабатываем данные формы
     form_data = await request.form()
 
-    # Получаем выбранные категории, если они были переданы
+    # Получаем выбранные категории и сложности
     selected_categories = []
-    for key, value in form_data.items():
-        if key.startswith('selected_category_'):
-            selected_categories.append(value)
-
-    # Получаем выбранные уровни сложности, если они были переданы
     selected_difficulties = []
+    
+    # Получаем тип экзамена
+    exam_type = form_data.get("exam_type", "rhcsa")
+    
+    # Получаем выбранные категории
     for key, value in form_data.items():
-        if key.startswith('selected_difficulty_'):
+        if key == "selected_categories":
+            selected_categories.append(value)
+    
+    # Получаем выбранные уровни сложности
+    for key, value in form_data.items():
+        if key == "selected_difficulties":
             selected_difficulties.append(value)
 
     # Словарь для результатов
@@ -297,7 +327,8 @@ async def submit_test(
             "results": results,
             "user": user,
             "selected_categories": selected_categories,
-            "selected_difficulties": selected_difficulties
+            "selected_difficulties": selected_difficulties,
+            "exam_type": exam_type
         }
     )
 

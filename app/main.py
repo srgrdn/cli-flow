@@ -18,7 +18,7 @@ logger = setup_logger()
 # Создаем таблицы в базе данных
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="RHCSA Testing Service")
+app = FastAPI(title="CLI-Flow")
 
 # Подключаем статические файлы
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -133,7 +133,7 @@ async def home(request: Request):
         "index.html",
         {
             "request": request,
-            "title": "RHCSA Testing Service",
+            "title": "CLI-Flow",
             "user": user
         }
     )

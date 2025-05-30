@@ -1,0 +1,26 @@
+[
+    {
+        "text": "Какой каталог в Linux является корнем всей файловой системы?",
+        "difficulty": "easy",
+        "category": "Иерархия файловой системы Linux",
+        "exam_type": "rhcsa",
+        "answers": [
+            {"text": "/root", "is_correct": false},
+            {"text": "/home", "is_correct": false},
+            {"text": "/", "is_correct": true},
+            {"text": "/etc", "is_correct": false}
+        ]
+    },
+    {
+        "text": "Какая команда используется для изменения прав доступа к файлу?",
+        "difficulty": "easy",
+        "category": "Права доступа",
+        "exam_type": "rhcsa",
+        "answers": [
+            {"text": "chown", "is_correct": false},
+            {"text": "chmod", "is_correct": true},
+            {"text": "chgrp", "is_correct": false},
+            {"text": "chattr", "is_correct": false}
+        ]
+    }
+] 

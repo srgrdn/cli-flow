@@ -39,7 +39,7 @@
         <i class="fas fa-info-circle fa-2x me-3"></i>
         <div>
             <h5 class="alert-heading">Добро пожаловать в админ-панель!</h5>
-            <p class="mb-0">Здесь вы можете управлять пользователями, добавлять новые вопросы и категории для тестирования RHCSA.</p>
+            <p class="mb-0">Здесь вы можете управлять пользователями, добавлять новые вопросы и категории для тестирования RHCSA и CKA.</p>
         </div>
     </div>
 </div>
@@ -58,6 +58,14 @@
                     </a>
                     <a href="/admin/questions/add" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                         <span><i class="fas fa-plus me-2"></i>Добавить новый вопрос</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    <a href="/admin/questions?exam_type=rhcsa" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><i class="fab fa-redhat me-2"></i>Вопросы RHCSA</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    <a href="/admin/questions?exam_type=cka" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-dharmachakra me-2"></i>Вопросы CKA</span>
                         <i class="fas fa-chevron-right"></i>
                     </a>
                 </div>

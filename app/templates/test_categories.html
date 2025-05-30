@@ -11,7 +11,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">RHCSA Testing Service</a>
+            <a class="navbar-brand" href="/">CLI-Flow</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -53,22 +53,59 @@
         
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Выберите темы и сложность для тестирования</h5>
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Выберите тип экзамена, темы и сложность для тестирования</h5>
             </div>
             <div class="card-body">
                 <form id="categories-form" method="post" action="/questions/start_test">
                     <div class="alert alert-info mb-4">
-                        <i class="fas fa-info-circle me-2"></i>Выберите одну или несколько тем и уровней сложности для тестирования. Если не выбрать ни одного параметра, тест будет содержать вопросы из всех тем и сложностей.
+                        <i class="fas fa-info-circle me-2"></i>Выберите тип экзамена, одну или несколько тем и уровней сложности для тестирования. Если не выбрать параметры, тест будет содержать вопросы из всех тем и сложностей.
+                    </div>
+                    
+                    <h5 class="mb-3"><i class="fas fa-graduation-cap me-2"></i>Тип экзамена</h5>
+                    <div class="mb-4">
+                        <div class="row row-cols-1 row-cols-md-2 g-3">
+                            <div class="col">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="exam_type" id="exam_type_rhcsa" value="rhcsa" checked onchange="toggleCategories()">
+                                    <label class="form-check-label" for="exam_type_rhcsa">
+                                        <span class="badge bg-primary">RHCSA</span> Red Hat Certified System Administrator
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="exam_type" id="exam_type_cka" value="cka" onchange="toggleCategories()">
+                                    <label class="form-check-label" for="exam_type_cka">
+                                        <span class="badge bg-success">CKA</span> Certified Kubernetes Administrator
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <h5 class="mb-3"><i class="fas fa-tags me-2"></i>Темы тестирования</h5>
                     <div class="mb-4">
-                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-                            {% for category in categories %}
+                        <!-- RHCSA категории -->
+                        <div id="rhcsa-categories" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                            {% for category in rhcsa_categories %}
                             <div class="col">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="categories" id="category_{{ loop.index }}" value="{{ category }}">
-                                    <label class="form-check-label" for="category_{{ loop.index }}">
+                                    <input class="form-check-input" type="checkbox" name="category_{{ loop.index }}" id="rhcsa_category_{{ loop.index }}" value="{{ category }}">
+                                    <label class="form-check-label" for="rhcsa_category_{{ loop.index }}">
+                                        {{ category }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- CKA категории -->
+                        <div id="cka-categories" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3" style="display: none;">
+                            {% for category in cka_categories %}
+                            <div class="col">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="category_{{ loop.index + 100 }}" id="cka_category_{{ loop.index }}" value="{{ category }}">
+                                    <label class="form-check-label" for="cka_category_{{ loop.index }}">
                                         {{ category }}
                                     </label>
                                 </div>
@@ -83,7 +120,7 @@
                             {% for difficulty in difficulties %}
                             <div class="col">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="difficulties" id="difficulty_{{ loop.index }}" value="{{ difficulty }}">
+                                    <input class="form-check-input" type="checkbox" name="difficulty_{{ loop.index }}" id="difficulty_{{ loop.index }}" value="{{ difficulty }}">
                                     <label class="form-check-label" for="difficulty_{{ loop.index }}">
                                         {% if difficulty == 'easy' %}
                                             <span class="badge bg-success">Легкий</span>
@@ -110,7 +147,7 @@
 
     <footer class="mt-5 py-3 bg-light">
         <div class="container text-center">
-            <p>© 2025 RHCSA Testing Service</p>
+            <p>© 2025 CLI-Flow</p>
         </div>
     </footer>
 
@@ -141,7 +178,37 @@
                     }
                 });
             }
+            
+            // Инициализация отображения категорий
+            toggleCategories();
         });
+        
+        // Функция для переключения отображения категорий в зависимости от выбранного типа экзамена
+        function toggleCategories() {
+            const rhcsaRadio = document.getElementById('exam_type_rhcsa');
+            const rhcsaCategories = document.getElementById('rhcsa-categories');
+            const ckaCategories = document.getElementById('cka-categories');
+            
+            if (rhcsaRadio.checked) {
+                rhcsaCategories.style.display = 'flex';
+                ckaCategories.style.display = 'none';
+                
+                // Сбрасываем выбор категорий CKA
+                const ckaCheckboxes = ckaCategories.querySelectorAll('input[type="checkbox"]');
+                ckaCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            } else {
+                rhcsaCategories.style.display = 'none';
+                ckaCategories.style.display = 'flex';
+                
+                // Сбрасываем выбор категорий RHCSA
+                const rhcsaCheckboxes = rhcsaCategories.querySelectorAll('input[type="checkbox"]');
+                rhcsaCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            }
+        }
     </script>
 </body>
 </html> 

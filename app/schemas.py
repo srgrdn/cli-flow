@@ -29,6 +29,7 @@ class QuestionBase(BaseModel):
     text: str
     difficulty: str
     category: str
+    exam_type: str = "rhcsa"
 
 
 class QuestionCreate(QuestionBase):
