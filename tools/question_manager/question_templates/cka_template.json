@@ -1,0 +1,26 @@
+[
+    {
+        "text": "Какая команда используется для просмотра всех подов во всех пространствах имен Kubernetes?",
+        "difficulty": "easy",
+        "category": "Базовые команды kubectl",
+        "exam_type": "cka",
+        "answers": [
+            {"text": "kubectl get pods", "is_correct": false},
+            {"text": "kubectl get pods -A", "is_correct": true},
+            {"text": "kubectl get all", "is_correct": false},
+            {"text": "kubectl describe pods", "is_correct": false}
+        ]
+    },
+    {
+        "text": "Как создать ConfigMap в Kubernetes из файла?",
+        "difficulty": "medium",
+        "category": "Конфигурация приложений",
+        "exam_type": "cka",
+        "answers": [
+            {"text": "kubectl create configmap my-config --from-file=config.txt", "is_correct": true},
+            {"text": "kubectl apply configmap my-config --from-file=config.txt", "is_correct": false},
+            {"text": "kubectl config create my-config --from-file=config.txt", "is_correct": false},
+            {"text": "kubectl configmap create my-config --from-file=config.txt", "is_correct": false}
+        ]
+    }
+] 

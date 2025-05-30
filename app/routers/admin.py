@@ -189,6 +189,7 @@ async def admin_questions(
     token: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     difficulty: Optional[str] = Query(None),
+    exam_type: Optional[str] = Query(None),
     admin: User = Depends(check_admin_access),
     db: Session = Depends(get_db)
 ):
@@ -199,18 +200,25 @@ async def admin_questions(
     # Применяем фильтры, если они указаны
     if category:
         query = query.filter(Question.category == category)
-
     if difficulty:
         query = query.filter(Question.difficulty == difficulty)
+    if exam_type:
+        query = query.filter(Question.exam_type == exam_type)
 
+    # Получаем отфильтрованные вопросы
     questions = query.all()
 
-    # Получаем все уникальные категории для фильтра
+    # Получаем все уникальные категории из базы данных
     categories = db.query(Question.category).distinct().all()
     categories = [cat[0] for cat in categories]
 
-    # Получаем все уникальные уровни сложности для фильтра
-    difficulties = ["easy", "medium", "hard"]
+    # Получаем все уникальные уровни сложности
+    difficulties = db.query(Question.difficulty).distinct().all()
+    difficulties = [diff[0] for diff in difficulties]
+
+    # Получаем все уникальные типы экзаменов
+    exam_types = db.query(Question.exam_type).distinct().all()
+    exam_types = [et[0] for et in exam_types]
 
     logger.info(f"Question management accessed by admin: {admin.email}")
     return templates.TemplateResponse(
@@ -222,8 +230,10 @@ async def admin_questions(
             "questions": questions,
             "categories": categories,
             "difficulties": difficulties,
+            "exam_types": exam_types,
             "selected_category": category,
             "selected_difficulty": difficulty,
+            "selected_exam_type": exam_type,
             "token": token
         }
     )
@@ -255,6 +265,7 @@ async def admin_add_question(
     text: str = Form(...),
     difficulty: str = Form(...),
     category: str = Form(...),
+    exam_type: str = Form(...),
     answers_text: List[str] = Form(...),
     is_correct: List[bool] = Form(...),
     token: Optional[str] = Query(None),
@@ -266,7 +277,8 @@ async def admin_add_question(
     question = Question(
         text=text,
         difficulty=difficulty,
-        category=category
+        category=category,
+        exam_type=exam_type
     )
     db.add(question)
     db.commit()
@@ -285,7 +297,7 @@ async def admin_add_question(
 
     logger.info(
         f"New question added by admin {admin.email}: "
-        f"ID: {question.id}, Category: {category}, Difficulty: {difficulty}"
+        f"ID: {question.id}, Category: {category}, Difficulty: {difficulty}, Exam type: {exam_type}"
     )
 
     # Перенаправляем на страницу со списком вопросов, добавляя токен
@@ -363,6 +375,7 @@ async def admin_update_question(
     text: str = Form(...),
     difficulty: str = Form(...),
     category: str = Form(...),
+    exam_type: str = Form(...),
     answers_text: List[str] = Form(...),
     is_correct: List[str] = Form(...),
     token: Optional[str] = Query(None),
@@ -378,6 +391,7 @@ async def admin_update_question(
     question.text = text
     question.difficulty = difficulty
     question.category = category
+    question.exam_type = exam_type
     db.commit()
 
     # Удаляем старые ответы
@@ -404,6 +418,11 @@ async def admin_update_question(
         db.add(answer)
 
     db.commit()
+
+    logger.info(
+        f"Question updated by admin {admin.email}: "
+        f"ID: {question.id}, Category: {category}, Difficulty: {difficulty}, Exam type: {exam_type}"
+    )
 
     # Перенаправляем на страницу со списком вопросов, добавляя токен
     redirect_url = "/admin/questions"

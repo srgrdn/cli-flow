@@ -14,6 +14,7 @@ class Question(Base):
     text = Column(Text, nullable=False)
     difficulty = Column(String, default="medium")  # easy, medium, hard
     category = Column(String, nullable=False)  # категория вопроса
+    exam_type = Column(String, default="rhcsa")  # тип экзамена: rhcsa или cka
     answers = relationship("Answer", back_populates="question", cascade="all, delete-orphan")
 
 

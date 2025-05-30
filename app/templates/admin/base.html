@@ -11,7 +11,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="/admin">RHCSA Админ-панель</a>
+            <a class="navbar-brand" href="/admin">CLI-Flow Админ-панель</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAdmin">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -23,8 +23,16 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/admin/users"><i class="fas fa-users me-1"></i>Пользователи</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/admin/questions"><i class="fas fa-question-circle me-1"></i>Вопросы</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="questionsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-question-circle me-1"></i>Вопросы
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="questionsDropdown">
+                            <li><a class="dropdown-item" href="/admin/questions"><i class="fas fa-list me-1"></i>Все вопросы</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/questions?exam_type=rhcsa"><i class="fab fa-redhat me-1"></i>RHCSA</a></li>
+                            <li><a class="dropdown-item" href="/admin/questions?exam_type=cka"><i class="fas fa-dharmachakra me-1"></i>CKA</a></li>
+                        </ul>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
@@ -49,8 +57,14 @@
                     <a href="/admin/users" class="list-group-item list-group-item-action {% if '/admin/users' in request.url.path %}active{% endif %}">
                         <i class="fas fa-users me-2"></i>Пользователи
                     </a>
-                    <a href="/admin/questions" class="list-group-item list-group-item-action {% if '/admin/questions' in request.url.path %}active{% endif %}">
-                        <i class="fas fa-question-circle me-2"></i>Вопросы
+                    <a href="/admin/questions" class="list-group-item list-group-item-action {% if '/admin/questions' in request.url.path and not request.query_params.get('exam_type') %}active{% endif %}">
+                        <i class="fas fa-question-circle me-2"></i>Все вопросы
+                    </a>
+                    <a href="/admin/questions?exam_type=rhcsa" class="list-group-item list-group-item-action {% if '/admin/questions' in request.url.path and request.query_params.get('exam_type') == 'rhcsa' %}active{% endif %}">
+                        <i class="fab fa-redhat me-2"></i>Вопросы RHCSA
+                    </a>
+                    <a href="/admin/questions?exam_type=cka" class="list-group-item list-group-item-action {% if '/admin/questions' in request.url.path and request.query_params.get('exam_type') == 'cka' %}active{% endif %}">
+                        <i class="fas fa-dharmachakra me-2"></i>Вопросы CKA
                     </a>
                 </div>
             </div>
@@ -71,7 +85,7 @@
 
     <footer class="py-3 bg-light mt-4">
         <div class="container text-center">
-            <p>© 2025 RHCSA Testing Service - Админ-панель</p>
+            <p>© 2025 CLI-Flow - Админ-панель</p>
         </div>
     </footer>
 

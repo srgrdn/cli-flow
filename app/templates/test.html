@@ -83,6 +83,7 @@
         
         <form id="test-form" method="post" action="/questions/submit">
             <input type="hidden" name="test_attempt_id" value="{{ test_attempt_id }}">
+            <input type="hidden" name="exam_type" value="{{ exam_type }}">
             
             {% if selected_categories %}
                 {% for category in selected_categories %}

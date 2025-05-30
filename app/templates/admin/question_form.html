@@ -12,7 +12,14 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
+            <label for="exam_type" class="form-label">Тип экзамена</label>
+            <select class="form-select" id="exam_type" name="exam_type" required>
+                <option value="rhcsa" {% if not question or question.exam_type == 'rhcsa' %}selected{% endif %}>RHCSA</option>
+                <option value="cka" {% if question and question.exam_type == 'cka' %}selected{% endif %}>CKA</option>
+            </select>
+        </div>
+        <div class="col-md-4">
             <label for="difficulty" class="form-label">Сложность</label>
             <select class="form-select" id="difficulty" name="difficulty" required>
                 <option value="easy" {% if question and question.difficulty == 'easy' %}selected{% endif %}>Легкий</option>
@@ -20,7 +27,7 @@
                 <option value="hard" {% if question and question.difficulty == 'hard' %}selected{% endif %}>Сложный</option>
             </select>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label for="category" class="form-label">Категория</label>
             <select class="form-select" id="category" name="category" required>
                 <option value="Управление пользователями" {% if question and question.category == 'Управление пользователями' %}selected{% endif %}>Управление пользователями</option>
@@ -31,6 +38,8 @@
                 <option value="Сеть" {% if question and question.category == 'Сеть' %}selected{% endif %}>Сеть</option>
                 <option value="Процессы" {% if question and question.category == 'Процессы' %}selected{% endif %}>Процессы</option>
                 <option value="Загрузка системы" {% if question and question.category == 'Загрузка системы' %}selected{% endif %}>Загрузка системы</option>
+                <option value="Kubernetes" {% if question and question.category == 'Kubernetes' %}selected{% endif %}>Kubernetes</option>
+                <option value="Контейнеры" {% if question and question.category == 'Контейнеры' %}selected{% endif %}>Контейнеры</option>
                 <option value="Другое" {% if question and question.category == 'Другое' %}selected{% endif %}>Другое</option>
             </select>
         </div>
