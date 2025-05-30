@@ -4,8 +4,8 @@ from datetime import datetime
 
 from sqlalchemy.sql import text
 
-from app.database import SessionLocal, engine
-from app.models import Base, Question, QuestionCategory
+from database import SessionLocal, engine
+from models import Base, Question, QuestionCategory
 
 # Добавляем корневую директорию проекта в sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
