@@ -1,0 +1,347 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Редактирование темы: {{ topic.title }}</h4>
+                </div>
+                <div class="card-body">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/admin/theory{% if token %}?token={{ token }}{% endif %}">Теоретические материалы</a></li>
+                            {% if topic.parent %}
+                                <li class="breadcrumb-item"><a href="/admin/theory/{{ topic.parent.id }}{% if token %}?token={{ token }}{% endif %}">{{ topic.parent.title }}</a></li>
+                            {% endif %}
+                            <li class="breadcrumb-item active" aria-current="page">{{ topic.title }}</li>
+                        </ol>
+                    </nav>
+                    
+                    <ul class="nav nav-tabs mb-4" id="theoryTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if active_tab == 'info' %}active{% endif %}" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="{{ 'true' if active_tab == 'info' else 'false' }}">
+                                Основная информация
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if active_tab == 'content' %}active{% endif %}" id="content-tab" data-bs-toggle="tab" data-bs-target="#content" type="button" role="tab" aria-controls="content" aria-selected="{{ 'true' if active_tab == 'content' else 'false' }}">
+                                Содержание
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if active_tab == 'resources' %}active{% endif %}" id="resources-tab" data-bs-toggle="tab" data-bs-target="#resources" type="button" role="tab" aria-controls="resources" aria-selected="{{ 'true' if active_tab == 'resources' else 'false' }}">
+                                Ресурсы ({{ topic.resources|length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if active_tab == 'questions' %}active{% endif %}" id="questions-tab" data-bs-toggle="tab" data-bs-target="#questions" type="button" role="tab" aria-controls="questions" aria-selected="{{ 'true' if active_tab == 'questions' else 'false' }}">
+                                Вопросы ({{ topic.questions|length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if active_tab == 'subtopics' %}active{% endif %}" id="subtopics-tab" data-bs-toggle="tab" data-bs-target="#subtopics" type="button" role="tab" aria-controls="subtopics" aria-selected="{{ 'true' if active_tab == 'subtopics' else 'false' }}">
+                                Подтемы ({{ topic.children|length }})
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="theoryTabContent">
+                        <!-- Основная информация -->
+                        <div class="tab-pane fade {% if active_tab == 'info' %}show active{% endif %}" id="info" role="tabpanel" aria-labelledby="info-tab">
+                            <form method="POST" action="/admin/theory/{{ topic.id }}/update{% if token %}?token={{ token }}{% endif %}">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Название темы*</label>
+                                    <input type="text" class="form-control" id="title" name="title" value="{{ topic.title }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Описание</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3">{{ topic.description or '' }}</textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="parent_id" class="form-label">Родительская тема</label>
+                                    <select class="form-select" id="parent_id" name="parent_id">
+                                        <option value="0">Корневая тема (без родителя)</option>
+                                        {% for t in topics %}
+                                            <option value="{{ t.id }}" {% if topic.parent_id == t.id %}selected{% endif %}>
+                                                {% if t.parent_id %}┗ {% endif %}
+                                                [{{ t.exam_type }}] {{ t.title }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="exam_type" class="form-label">Тип экзамена*</label>
+                                    <select class="form-select" id="exam_type" name="exam_type" required>
+                                        {% for type in exam_types %}
+                                            <option value="{{ type }}" {% if topic.exam_type == type %}selected{% endif %}>
+                                                {{ type.upper() }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="order" class="form-label">Порядок отображения</label>
+                                    <input type="number" class="form-control" id="order" name="order" value="{{ topic.order }}" min="0">
+                                    <div class="form-text">Темы с меньшим значением отображаются выше.</div>
+                                </div>
+                                
+                                <div class="d-flex">
+                                    <button type="submit" class="btn btn-primary me-2">Сохранить изменения</button>
+                                    <a href="/admin/theory{% if token %}?token={{ token }}{% endif %}" class="btn btn-secondary">Назад к списку</a>
+                                    
+                                    {% if not topic.children or topic.children|length == 0 %}
+                                        <a href="/admin/theory/{{ topic.id }}/delete{% if token %}?token={{ token }}{% endif %}" 
+                                           class="btn btn-danger ms-auto" 
+                                           onclick="return confirm('Вы уверены, что хотите удалить тему {{ topic.title }}?');">
+                                            Удалить тему
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-danger ms-auto" disabled title="Нельзя удалить тему с подтемами">
+                                            Удалить тему
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Содержание -->
+                        <div class="tab-pane fade {% if active_tab == 'content' %}show active{% endif %}" id="content" role="tabpanel" aria-labelledby="content-tab">
+                            <form method="POST" action="/admin/theory/{{ topic.id }}/content{% if token %}?token={{ token }}{% endif %}">
+                                <div class="mb-3">
+                                    <label for="content" class="form-label">Содержание темы</label>
+                                    <textarea class="form-control" id="content" name="content" rows="15">{{ topic.content[0].content if topic.content and topic.content|length > 0 else '' }}</textarea>
+                                    <div class="form-text">
+                                        Поддерживается HTML-разметка. Для форматирования текста используйте HTML-теги.
+                                        <br>Для вставки кода используйте: &lt;pre&gt;&lt;code&gt;ваш код&lt;/code&gt;&lt;/pre&gt;
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex">
+                                    <button type="submit" class="btn btn-primary me-2">Сохранить содержание</button>
+                                </div>
+                            </form>
+                            
+                            {% if topic.content and topic.content|length > 0 %}
+                                <div class="mt-4">
+                                    <h5>Предпросмотр содержания:</h5>
+                                    <div class="card">
+                                        <div class="card-body theory-content">
+                                            {{ topic.content[0].content|safe }}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Ресурсы -->
+                        <div class="tab-pane fade {% if active_tab == 'resources' %}show active{% endif %}" id="resources" role="tabpanel" aria-labelledby="resources-tab">
+                            <div class="mb-4">
+                                <h5>Добавить ресурс</h5>
+                                <form method="POST" action="/admin/theory/{{ topic.id }}/resources/add{% if token %}?token={{ token }}{% endif %}">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label for="title" class="form-label">Название*</label>
+                                            <input type="text" class="form-control" id="title" name="title" required>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label for="url" class="form-label">URL*</label>
+                                            <input type="url" class="form-control" id="url" name="url" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="resource_type" class="form-label">Тип ресурса</label>
+                                            <select class="form-select" id="resource_type" name="resource_type">
+                                                <option value="link">Ссылка</option>
+                                                <option value="video">Видео</option>
+                                                <option value="document">Документация</option>
+                                                <option value="book">Книга</option>
+                                                <option value="article">Статья</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <button type="submit" class="btn btn-primary">Добавить ресурс</button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <h5>Ресурсы по теме ({{ topic.resources|length }})</h5>
+                            {% if topic.resources %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Название</th>
+                                                <th>URL</th>
+                                                <th>Тип</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for resource in topic.resources %}
+                                                <tr>
+                                                    <td>{{ resource.id }}</td>
+                                                    <td>{{ resource.title }}</td>
+                                                    <td>
+                                                        <a href="{{ resource.url }}" target="_blank">{{ resource.url|truncate(40) }}</a>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-primary">{{ resource.resource_type }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <a href="/admin/theory/resources/{{ resource.id }}/delete{% if token %}?token={{ token }}{% endif %}" 
+                                                           class="btn btn-sm btn-danger" 
+                                                           onclick="return confirm('Вы уверены, что хотите удалить ресурс {{ resource.title }}?');">
+                                                            <i class="fas fa-trash"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">У этой темы еще нет ресурсов.</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Вопросы -->
+                        <div class="tab-pane fade {% if active_tab == 'questions' %}show active{% endif %}" id="questions" role="tabpanel" aria-labelledby="questions-tab">
+                            <div class="mb-4">
+                                <h5>Связать вопрос с темой</h5>
+                                <form method="POST" action="/admin/theory/{{ topic.id }}/questions/link{% if token %}?token={{ token }}{% endif %}">
+                                    <div class="row g-3">
+                                        <div class="col-md-8">
+                                            <label for="question_id" class="form-label">Выберите вопрос</label>
+                                            <select class="form-select" id="question_id" name="question_id" required>
+                                                <option value="">-- Выберите вопрос --</option>
+                                                {% for question in questions %}
+                                                    {% if question not in topic.questions %}
+                                                        <option value="{{ question.id }}">
+                                                            [{{ question.category }}] {{ question.text|truncate(70) }}
+                                                        </option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 d-flex align-items-end">
+                                            <button type="submit" class="btn btn-primary">Связать вопрос с темой</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <h5>Связанные вопросы ({{ topic.questions|length }})</h5>
+                            {% if topic.questions %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Текст вопроса</th>
+                                                <th>Категория</th>
+                                                <th>Сложность</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for question in topic.questions %}
+                                                <tr>
+                                                    <td>{{ question.id }}</td>
+                                                    <td>{{ question.text|truncate(80) }}</td>
+                                                    <td>{{ question.category }}</td>
+                                                    <td>{{ question.difficulty }}</td>
+                                                    <td>
+                                                        <a href="/admin/questions/{{ question.id }}/edit{% if token %}?token={{ token }}{% endif %}" 
+                                                           class="btn btn-sm btn-primary" title="Редактировать вопрос">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <a href="/admin/theory/{{ topic.id }}/questions/{{ question.id }}/unlink{% if token %}?token={{ token }}{% endif %}" 
+                                                           class="btn btn-sm btn-danger" 
+                                                           onclick="return confirm('Вы уверены, что хотите удалить связь с этим вопросом?');" 
+                                                           title="Удалить связь">
+                                                            <i class="fas fa-unlink"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">У этой темы еще нет связанных вопросов.</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Подтемы -->
+                        <div class="tab-pane fade {% if active_tab == 'subtopics' %}show active{% endif %}" id="subtopics" role="tabpanel" aria-labelledby="subtopics-tab">
+                            <div class="mb-4">
+                                <a href="/admin/theory/add?parent_id={{ topic.id }}&exam_type={{ topic.exam_type }}{% if token %}&token={{ token }}{% endif %}" class="btn btn-success">
+                                    <i class="fas fa-plus-circle"></i> Добавить подтему
+                                </a>
+                            </div>
+                            
+                            <h5>Подтемы ({{ topic.children|length }})</h5>
+                            {% if topic.children %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Название</th>
+                                                <th>Порядок</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for child in topic.children|sort(attribute='order') %}
+                                                <tr>
+                                                    <td>{{ child.id }}</td>
+                                                    <td>{{ child.title }}</td>
+                                                    <td>{{ child.order }}</td>
+                                                    <td>
+                                                        <a href="/admin/theory/{{ child.id }}{% if token %}?token={{ token }}{% endif %}" 
+                                                           class="btn btn-sm btn-primary" title="Редактировать">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">У этой темы еще нет подтем.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Активация выбранной вкладки при обновлении страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        // Получаем hash из URL
+        const hash = window.location.hash;
+        if (hash) {
+            // Активируем вкладку, соответствующую hash
+            const tab = document.querySelector(`[data-bs-target="${hash}"]`);
+            if (tab) {
+                const tabInstance = new bootstrap.Tab(tab);
+                tabInstance.show();
+            }
+        }
+    });
+</script>
+{% endblock %} 

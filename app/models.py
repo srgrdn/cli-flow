@@ -1,9 +1,32 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy.orm import relationship
 
 from database import Base
+
+
+class QuestionCategory(Base):
+    """Модель для категорий вопросов"""
+    __tablename__ = "question_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False, unique=True)
+    exam_type = Column(String(50), default="rhcsa")  # тип экзамена: rhcsa или cka
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Связь с вопросами
+    questions = relationship("Question", back_populates="category_relation")
 
 
 class Question(Base):
@@ -13,9 +36,16 @@ class Question(Base):
     id = Column(Integer, primary_key=True, index=True)
     text = Column(Text, nullable=False)
     difficulty = Column(String, default="medium")  # easy, medium, hard
-    category = Column(String, nullable=False)  # категория вопроса
+    category = Column(String, nullable=False)  # категория вопроса (для обратной совместимости)
+    category_id = Column(Integer, ForeignKey("question_categories.id"), nullable=True)  # ID категории
     exam_type = Column(String, default="rhcsa")  # тип экзамена: rhcsa или cka
     answers = relationship("Answer", back_populates="question", cascade="all, delete-orphan")
+
+    # Связь с темами теории
+    topics = relationship("TheoryTopic", secondary="topic_questions", back_populates="questions")
+
+    # Связь с категорией
+    category_relation = relationship("QuestionCategory", back_populates="questions")
 
 
 class User(Base):
@@ -74,3 +104,58 @@ class UserAnswer(Base):
     test_attempt = relationship("TestAttempt", back_populates="user_answers")
     question = relationship("Question")
     answer = relationship("Answer")
+
+
+# Связующая таблица между темами теории и вопросами
+topic_questions = Table(
+    "topic_questions",
+    Base.metadata,
+    Column("topic_id", Integer, ForeignKey("theory_topics.id"), primary_key=True),
+    Column("question_id", Integer, ForeignKey("questions.id"), primary_key=True)
+)
+
+
+class TheoryTopic(Base):
+    """Модель для тем теоретического материала"""
+    __tablename__ = "theory_topics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    parent_id = Column(Integer, ForeignKey("theory_topics.id"), nullable=True)
+    exam_type = Column(String, default="rhcsa")  # тип экзамена: rhcsa или cka
+    order = Column(Integer, default=0)  # порядок отображения темы
+
+    # Связи
+    parent = relationship("TheoryTopic", remote_side=[id], backref="children")
+    content = relationship("TheoryContent", back_populates="topic", cascade="all, delete-orphan")
+    resources = relationship("TheoryResource", back_populates="topic", cascade="all, delete-orphan")
+    questions = relationship("Question", secondary="topic_questions", back_populates="topics")
+
+
+class TheoryContent(Base):
+    """Модель для содержимого теоретического материала"""
+    __tablename__ = "theory_contents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    topic_id = Column(Integer, ForeignKey("theory_topics.id"))
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Связь с темой
+    topic = relationship("TheoryTopic", back_populates="content")
+
+
+class TheoryResource(Base):
+    """Модель для дополнительных ресурсов к теории"""
+    __tablename__ = "theory_resources"
+
+    id = Column(Integer, primary_key=True, index=True)
+    topic_id = Column(Integer, ForeignKey("theory_topics.id"))
+    title = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    resource_type = Column(String, default="link")  # тип ресурса: link, video, doc, etc.
+
+    # Связь с темой
+    topic = relationship("TheoryTopic", back_populates="resources")

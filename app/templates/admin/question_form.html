@@ -29,19 +29,22 @@
         </div>
         <div class="col-md-4">
             <label for="category" class="form-label">Категория</label>
-            <select class="form-select" id="category" name="category" required>
-                <option value="Управление пользователями" {% if question and question.category == 'Управление пользователями' %}selected{% endif %}>Управление пользователями</option>
-                <option value="Файловые системы" {% if question and question.category == 'Файловые системы' %}selected{% endif %}>Файловые системы</option>
-                <option value="Права доступа" {% if question and question.category == 'Права доступа' %}selected{% endif %}>Права доступа</option>
-                <option value="Хранение данных" {% if question and question.category == 'Хранение данных' %}selected{% endif %}>Хранение данных</option>
-                <option value="LVM" {% if question and question.category == 'LVM' %}selected{% endif %}>LVM</option>
-                <option value="Сеть" {% if question and question.category == 'Сеть' %}selected{% endif %}>Сеть</option>
-                <option value="Процессы" {% if question and question.category == 'Процессы' %}selected{% endif %}>Процессы</option>
-                <option value="Загрузка системы" {% if question and question.category == 'Загрузка системы' %}selected{% endif %}>Загрузка системы</option>
-                <option value="Kubernetes" {% if question and question.category == 'Kubernetes' %}selected{% endif %}>Kubernetes</option>
-                <option value="Контейнеры" {% if question and question.category == 'Контейнеры' %}selected{% endif %}>Контейнеры</option>
-                <option value="Другое" {% if question and question.category == 'Другое' %}selected{% endif %}>Другое</option>
-            </select>
+            <div class="input-group">
+                <select class="form-select" id="category" name="category" required>
+                    <option value="" disabled {% if not question %}selected{% endif %}>Выберите категорию</option>
+                    {% for category in categories %}
+                    <option value="{{ category.name }}" {% if question and question.category == category.name %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                    <option value="new_category" {% if question and not categories|selectattr('name', 'eq', question.category)|list %}selected{% endif %}>+ Новая категория</option>
+                </select>
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#newCategoryModal">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div id="newCategoryField" class="mt-2" style="display: none;">
+                <input type="text" class="form-control" id="new_category" name="new_category" placeholder="Введите название новой категории" 
+                       value="{% if question and not categories|selectattr('name', 'eq', question.category)|list %}{{ question.category }}{% endif %}">
+            </div>
         </div>
     </div>
 
@@ -108,6 +111,41 @@
         </button>
     </div>
 </form>
+
+<!-- Модальное окно для добавления категории -->
+<div class="modal fade" id="newCategoryModal" tabindex="-1" aria-labelledby="newCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newCategoryModalLabel">Добавление новой категории</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addCategoryForm" method="post" action="/admin/categories/add{% if token %}?token={{ token }}{% endif %}" target="_blank">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modal_name" class="form-label">Название категории</label>
+                        <input type="text" class="form-control" id="modal_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal_exam_type" class="form-label">Тип экзамена</label>
+                        <select class="form-select" id="modal_exam_type" name="exam_type" required>
+                            <option value="rhcsa">RHCSA</option>
+                            <option value="cka">CKA</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal_description" class="form-label">Описание</label>
+                        <textarea class="form-control" id="modal_description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -117,6 +155,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const addAnswerBtn = document.getElementById('addAnswerBtn');
     const noAnswersAlert = document.getElementById('noAnswersAlert');
     const questionForm = document.getElementById('questionForm');
+    const categorySelect = document.getElementById('category');
+    const newCategoryField = document.getElementById('newCategoryField');
+    const newCategoryInput = document.getElementById('new_category');
+    
+    // Обработчик изменения выбора категории
+    categorySelect.addEventListener('change', function() {
+        if (this.value === 'new_category') {
+            newCategoryField.style.display = 'block';
+            newCategoryInput.required = true;
+        } else {
+            newCategoryField.style.display = 'none';
+            newCategoryInput.required = false;
+        }
+    });
+    
+    // Инициализируем состояние поля новой категории
+    if (categorySelect.value === 'new_category') {
+        newCategoryField.style.display = 'block';
+        newCategoryInput.required = true;
+    }
     
     // Определяем начальное количество ответов
     let answerCount = answersContainer.querySelectorAll('.answer-item').length;
@@ -190,6 +248,52 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return true;
     });
+
+    // Обработчик для формы добавления категории
+    document.getElementById('addCategoryForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const categoryName = formData.get('name');
+        const examType = formData.get('exam_type');
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            redirect: 'manual'
+        }).then(response => {
+            if (response.ok) {
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('newCategoryModal'));
+                modal.hide();
+                
+                // Добавляем новую категорию в селект и выбираем её
+                const newOption = new Option(categoryName, categoryName, true, true);
+                categorySelect.appendChild(newOption);
+                categorySelect.value = categoryName;
+                
+                // Скрываем поле ввода новой категории
+                newCategoryField.style.display = 'none';
+                newCategoryInput.required = false;
+                
+                // Уведомляем пользователя
+                alert(`Категория "${categoryName}" успешно добавлена!`);
+            } else {
+                alert('Ошибка при добавлении категории. Проверьте, что категория с таким названием не существует.');
+            }
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при добавлении категории.');
+        });
+    });
+    
+    // Синхронизация значения exam_type между основной формой и модальным окном
+    document.getElementById('exam_type').addEventListener('change', function() {
+        document.getElementById('modal_exam_type').value = this.value;
+    });
+    
+    // Инициализация значения exam_type в модальном окне
+    document.getElementById('modal_exam_type').value = document.getElementById('exam_type').value;
 });
 </script>
 {% endblock %} 

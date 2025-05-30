@@ -110,7 +110,8 @@ async def read_questions(skip: int = 0, limit: int = 100, db: Session = Depends(
 async def test_page(
     request: Request,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
+    exam_type: Optional[str] = Query(None)
 ):
     """Страница выбора категорий и сложности для теста (требует авторизации)"""
     # Получаем категории для RHCSA
@@ -137,7 +138,8 @@ async def test_page(
             "cka_categories": cka_categories,
             "difficulties": difficulties,
             "title": "Выбор параметров для тестирования",
-            "user": user
+            "user": user,
+            "selected_exam_type": exam_type
         }
     )
 

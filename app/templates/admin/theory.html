@@ -1,0 +1,107 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Управление теоретическими материалами</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <form method="GET" action="/admin/theory" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="exam_type" class="form-label">Тип экзамена</label>
+                                <select name="exam_type" id="exam_type" class="form-select">
+                                    <option value="">Все типы</option>
+                                    {% for type in exam_types %}
+                                        <option value="{{ type }}" {% if current_exam_type == type %}selected{% endif %}>
+                                            {{ type.upper() }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% if token %}
+                                <input type="hidden" name="token" value="{{ token }}">
+                            {% endif %}
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary">Применить фильтр</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <a href="/admin/theory/add{% if token %}?token={{ token }}{% if current_exam_type %}&exam_type={{ current_exam_type }}{% endif %}{% else %}{% if current_exam_type %}?exam_type={{ current_exam_type }}{% endif %}{% endif %}" class="btn btn-success">
+                            <i class="fas fa-plus-circle"></i> Добавить новую тему
+                        </a>
+                    </div>
+                    
+                    {% if topics %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Название</th>
+                                        <th>Тип экзамена</th>
+                                        <th>Порядок</th>
+                                        <th>Подтемы</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for topic in topics %}
+                                        <tr>
+                                            <td>{{ topic.id }}</td>
+                                            <td>{{ topic.title }}</td>
+                                            <td>{{ topic.exam_type }}</td>
+                                            <td>{{ topic.order }}</td>
+                                            <td>
+                                                {% if topic.children %}
+                                                    <span class="badge bg-info">{{ topic.children|length }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">0</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="/admin/theory/{{ topic.id }}{% if token %}?token={{ token }}{% endif %}" 
+                                                   class="btn btn-sm btn-primary" title="Редактировать">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="/admin/theory/add?parent_id={{ topic.id }}&exam_type={{ topic.exam_type }}{% if token %}&token={{ token }}{% endif %}" 
+                                                   class="btn btn-sm btn-success" title="Добавить подтему">
+                                                    <i class="fas fa-plus"></i>
+                                                </a>
+                                                {% if not topic.children or topic.children|length == 0 %}
+                                                    <a href="/admin/theory/{{ topic.id }}/delete{% if token %}?token={{ token }}{% endif %}" 
+                                                       class="btn btn-sm btn-danger" 
+                                                       onclick="return confirm('Вы уверены, что хотите удалить тему {{ topic.title }}?');" 
+                                                       title="Удалить">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                {% else %}
+                                                    <button class="btn btn-sm btn-danger" disabled title="Нельзя удалить тему с подтемами">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            Темы теоретических материалов не найдены.
+                            {% if current_exam_type %}
+                                <a href="/admin/theory">Показать все темы</a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
