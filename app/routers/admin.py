@@ -340,6 +340,178 @@ async def admin_delete_question(
     return RedirectResponse(url=redirect_url, status_code=303)
 
 
+# Массовое удаление вопросов
+@router.post("/questions/batch-delete", response_model=None)
+async def admin_batch_delete_questions(
+    request: Request,
+    token: Optional[str] = Query(None),
+    admin: User = Depends(check_admin_access),
+    db: Session = Depends(get_db)
+):
+    """Массовое удаление вопросов"""
+    try:
+        # Получаем данные формы
+        form = await request.form()
+        
+        # Преобразуем MultiDict формы в обычный dict для логирования
+        form_data = dict(form)
+        logger.info(f"Received form data keys: {list(form_data.keys())}")
+        
+        # Используем встроенный метод getlist для получения всех значений с одинаковым ключом
+        question_ids_raw = form.getlist('question_ids')
+        logger.info(f"Raw question_ids from form.getlist: {question_ids_raw}")
+        
+        # Преобразуем строковые ID в целочисленные
+        question_ids = []
+        for id_str in question_ids_raw:
+            try:
+                question_id = int(id_str)
+                question_ids.append(question_id)
+            except ValueError:
+                logger.warning(f"Invalid question ID format: {id_str}")
+        
+        if question_ids:
+            logger.info(f"Attempting to delete {len(question_ids)} questions: {question_ids}")
+            
+            try:
+                # Удаляем связанные ответы пользователей
+                user_answers_deleted = db.query(UserAnswer).filter(
+                    UserAnswer.question_id.in_(question_ids)
+                ).delete(synchronize_session=False)
+                
+                # Удаляем связанные ответы
+                answers_deleted = db.query(Answer).filter(
+                    Answer.question_id.in_(question_ids)
+                ).delete(synchronize_session=False)
+                
+                # Удаляем сами вопросы
+                deleted_count = db.query(Question).filter(
+                    Question.id.in_(question_ids)
+                ).delete(synchronize_session=False)
+                
+                db.commit()
+                
+                logger.info(
+                    f"Batch deletion by admin: {admin.email}. "
+                    f"Deleted {deleted_count} questions, {answers_deleted} answers, "
+                    f"{user_answers_deleted} user answers. Question IDs: {question_ids}"
+                )
+            except Exception as e:
+                db.rollback()
+                logger.error(f"Error during batch deletion: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error during batch deletion: {str(e)}")
+        else:
+            logger.warning(f"Batch delete request without valid question IDs from admin: {admin.email}")
+    
+    except Exception as e:
+        logger.error(f"Unexpected error in batch delete: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+    # Перенаправляем на страницу со списком вопросов, сохраняя фильтры
+    redirect_url = "/admin/questions"
+    params = []
+    
+    if token:
+        params.append(f"token={token}")
+    
+    # Сохраняем текущие фильтры
+    for key, value in form.items():
+        if key in ["category", "difficulty", "exam_type"] and value:
+            params.append(f"{key}={value}")
+    
+    if params:
+        redirect_url += "?" + "&".join(params)
+
+    return RedirectResponse(url=redirect_url, status_code=303)
+
+
+# Удаление категории вопросов
+@router.post("/questions/delete-category", response_model=None)
+async def admin_delete_category(
+    request: Request,
+    token: Optional[str] = Query(None),
+    admin: User = Depends(check_admin_access),
+    db: Session = Depends(get_db)
+):
+    """Удаление всех вопросов определенной категории"""
+    try:
+        form = await request.form()
+        form_data = dict(form)
+        
+        logger.info(f"Category deletion form data: {form_data}")
+        
+        category = form.get("category")
+        exam_type = form.get("exam_type")
+        
+        if not category:
+            logger.warning(f"Category deletion request without category from admin: {admin.email}")
+            raise HTTPException(status_code=400, detail="Категория не указана")
+        
+        logger.info(f"Attempting to delete category '{category}' with exam_type filter: {exam_type}")
+        
+        try:
+            # Строим базовый запрос
+            query = db.query(Question).filter(Question.category == category)
+            
+            # Если указан тип экзамена, добавляем его в фильтр
+            if exam_type:
+                query = query.filter(Question.exam_type == exam_type)
+            
+            # Получаем ID вопросов для удаления
+            questions = query.all()
+            question_ids = [q.id for q in questions]
+            
+            logger.info(f"Found {len(question_ids)} questions in category '{category}' to delete")
+            
+            if question_ids:
+                # Удаляем связанные ответы пользователей
+                user_answers_deleted = db.query(UserAnswer).filter(
+                    UserAnswer.question_id.in_(question_ids)
+                ).delete(synchronize_session=False)
+                
+                # Удаляем связанные ответы
+                answers_deleted = db.query(Answer).filter(
+                    Answer.question_id.in_(question_ids)
+                ).delete(synchronize_session=False)
+                
+                # Удаляем сами вопросы
+                deleted_count = query.delete(synchronize_session=False)
+                
+                db.commit()
+                
+                logger.info(
+                    f"Category '{category}' deletion by admin: {admin.email}. "
+                    f"Deleted {deleted_count} questions, {answers_deleted} answers, "
+                    f"{user_answers_deleted} user answers."
+                )
+            else:
+                logger.info(f"No questions found in category '{category}' to delete")
+                
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error during category deletion: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error during category deletion: {str(e)}")
+    
+    except Exception as e:
+        logger.error(f"Unexpected error in category deletion: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+    # Перенаправляем на страницу со списком вопросов, добавляя токен и сохраняя фильтры
+    redirect_url = "/admin/questions"
+    params = []
+    
+    if token:
+        params.append(f"token={token}")
+    
+    if exam_type:
+        params.append(f"exam_type={exam_type}")
+    
+    if params:
+        redirect_url += "?" + "&".join(params)
+
+    return RedirectResponse(url=redirect_url, status_code=303)
+
+
 # Форма редактирования вопроса
 @router.get("/questions/{question_id}/edit", response_model=None)
 async def admin_edit_question_form(
