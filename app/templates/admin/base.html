@@ -34,6 +34,19 @@
                             <li><a class="dropdown-item" href="/admin/questions?exam_type=cka"><i class="fas fa-dharmachakra me-1"></i>CKA</a></li>
                         </ul>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="theoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-book me-1"></i>Теория
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="theoryDropdown">
+                            <li><a class="dropdown-item" href="/admin/theory"><i class="fas fa-list me-1"></i>Все темы</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/theory?exam_type=rhcsa"><i class="fab fa-redhat me-1"></i>RHCSA</a></li>
+                            <li><a class="dropdown-item" href="/admin/theory?exam_type=cka"><i class="fas fa-dharmachakra me-1"></i>CKA</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/theory/add"><i class="fas fa-plus-circle me-1"></i>Добавить тему</a></li>
+                        </ul>
+                    </li>
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item">
@@ -65,6 +78,21 @@
                     </a>
                     <a href="/admin/questions?exam_type=cka" class="list-group-item list-group-item-action {% if '/admin/questions' in request.url.path and request.query_params.get('exam_type') == 'cka' %}active{% endif %}">
                         <i class="fas fa-dharmachakra me-2"></i>Вопросы CKA
+                    </a>
+                    <div class="list-group-item list-group-item-secondary">
+                        <i class="fas fa-book me-2"></i>Теория
+                    </div>
+                    <a href="/admin/theory" class="list-group-item list-group-item-action {% if '/admin/theory' in request.url.path and not request.query_params.get('exam_type') and '/add' not in request.url.path %}active{% endif %}">
+                        <i class="fas fa-list me-2"></i>Все темы
+                    </a>
+                    <a href="/admin/theory?exam_type=rhcsa" class="list-group-item list-group-item-action {% if '/admin/theory' in request.url.path and request.query_params.get('exam_type') == 'rhcsa' %}active{% endif %}">
+                        <i class="fab fa-redhat me-2"></i>Темы RHCSA
+                    </a>
+                    <a href="/admin/theory?exam_type=cka" class="list-group-item list-group-item-action {% if '/admin/theory' in request.url.path and request.query_params.get('exam_type') == 'cka' %}active{% endif %}">
+                        <i class="fas fa-dharmachakra me-2"></i>Темы CKA
+                    </a>
+                    <a href="/admin/theory/add" class="list-group-item list-group-item-action {% if '/admin/theory/add' in request.url.path %}active{% endif %}">
+                        <i class="fas fa-plus-circle me-2"></i>Добавить тему
                     </a>
                 </div>
             </div>

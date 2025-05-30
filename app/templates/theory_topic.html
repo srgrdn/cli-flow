@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Хлебные крошки -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/theory?exam_type={{ topic.exam_type }}">Теория</a></li>
+                    {% for crumb in breadcrumbs %}
+                        {% if crumb.id == topic.id %}
+                            <li class="breadcrumb-item active" aria-current="page">{{ crumb.title }}</li>
+                        {% else %}
+                            <li class="breadcrumb-item"><a href="/theory/{{ crumb.id }}">{{ crumb.title }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                </ol>
+            </nav>
+            
+            <h1>{{ topic.title }}</h1>
+            {% if topic.description %}
+                <p class="lead">{{ topic.description }}</p>
+            {% endif %}
+            
+            <!-- Содержимое темы -->
+            {% if topic.content and topic.content|length > 0 %}
+                <div class="card mb-4">
+                    <div class="card-body theory-content">
+                        {{ topic.content[0].content | safe }}
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info mb-4">
+                    Содержимое этой темы еще не добавлено.
+                </div>
+            {% endif %}
+            
+            <!-- Дочерние темы -->
+            {% if topic.children %}
+                <h3>Подтемы</h3>
+                <div class="list-group mb-4">
+                    {% for child in topic.children %}
+                        <a href="/theory/{{ child.id }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ child.title }}</h5>
+                            </div>
+                            {% if child.description %}
+                                <p class="mb-1">{{ child.description }}</p>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- Связанные вопросы -->
+            {% if topic.questions %}
+                <h3>Связанные вопросы для самопроверки</h3>
+                <div class="list-group mb-4">
+                    {% for question in topic.questions %}
+                        <div class="list-group-item">
+                            <h5>{{ question.text }}</h5>
+                            <p><strong>Сложность:</strong> {{ question.difficulty }}</p>
+                            <p><strong>Категория:</strong> {{ question.category }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- Дополнительные ресурсы -->
+            {% if topic.resources %}
+                <h3>Дополнительные ресурсы</h3>
+                <div class="list-group mb-4">
+                    {% for resource in topic.resources %}
+                        <a href="{{ resource.url }}" target="_blank" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ resource.title }}</h5>
+                                <span class="badge bg-primary">{{ resource.resource_type }}</span>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Добавляем подсветку синтаксиса для блоков кода, если они есть
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof hljs !== 'undefined') {
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightBlock(block);
+            });
+        }
+    });
+</script>
+{% endblock %} 

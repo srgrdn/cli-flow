@@ -1,0 +1,73 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Добавление новой темы</h4>
+                </div>
+                <div class="card-body">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/admin/theory{% if token %}?token={{ token }}{% endif %}">Теоретические материалы</a></li>
+                            {% if parent_topic %}
+                                <li class="breadcrumb-item"><a href="/admin/theory/{{ parent_topic.id }}{% if token %}?token={{ token }}{% endif %}">{{ parent_topic.title }}</a></li>
+                            {% endif %}
+                            <li class="breadcrumb-item active" aria-current="page">Новая тема</li>
+                        </ol>
+                    </nav>
+                    
+                    <form method="POST" action="/admin/theory/add{% if token %}?token={{ token }}{% endif %}">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Название темы*</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Описание</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="parent_id" class="form-label">Родительская тема</label>
+                            <select class="form-select" id="parent_id" name="parent_id">
+                                <option value="">Корневая тема (без родителя)</option>
+                                {% for topic in topics %}
+                                    <option value="{{ topic.id }}" {% if parent_topic and parent_topic.id == topic.id %}selected{% endif %}>
+                                        {% if topic.parent_id %}┗ {% endif %}
+                                        [{{ topic.exam_type }}] {{ topic.title }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="exam_type" class="form-label">Тип экзамена*</label>
+                            <select class="form-select" id="exam_type" name="exam_type" required>
+                                {% for type in exam_types %}
+                                    <option value="{{ type }}" {% if default_exam_type == type %}selected{% endif %}>
+                                        {{ type.upper() }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="order" class="form-label">Порядок отображения</label>
+                            <input type="number" class="form-control" id="order" name="order" value="0" min="0">
+                            <div class="form-text">Темы с меньшим значением отображаются выше.</div>
+                        </div>
+                        
+                        <div class="d-flex">
+                            <button type="submit" class="btn btn-primary me-2">Добавить тему</button>
+                            <a href="{% if parent_topic %}/admin/theory/{{ parent_topic.id }}{% else %}/admin/theory{% endif %}{% if token %}?token={{ token }}{% endif %}" class="btn btn-secondary">Отмена</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

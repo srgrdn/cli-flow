@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>{{ title }}</h1>
+            <p class="lead">Выберите тему для изучения</p>
+            
+            <div class="btn-group mb-4">
+                <a href="/theory?exam_type=rhcsa" class="btn btn-primary {% if exam_type == 'rhcsa' %}active{% endif %}">RHCSA</a>
+                <a href="/theory?exam_type=cka" class="btn btn-primary {% if exam_type == 'cka' %}active{% endif %}">CKA</a>
+            </div>
+            
+            {% if topics %}
+                <div class="list-group">
+                    {% for topic in topics %}
+                        <a href="/theory/{{ topic.id }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ topic.title }}</h5>
+                            </div>
+                            {% if topic.description %}
+                                <p class="mb-1">{{ topic.description }}</p>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    Теоретические материалы для экзамена {{ exam_type.upper() }} пока не добавлены.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

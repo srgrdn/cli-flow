@@ -121,3 +121,93 @@ class TestResult(BaseModel):
     correct_answers: int
     total_questions: int
     details: List[Dict[str, Any]]
+
+
+# Схемы для теоретических материалов
+
+class TheoryResourceBase(BaseModel):
+    """Базовая схема для ресурса теории"""
+    title: str
+    url: str
+    resource_type: str = "link"
+
+
+class TheoryResourceCreate(TheoryResourceBase):
+    """Схема для создания ресурса теории"""
+    pass
+
+
+class TheoryResource(TheoryResourceBase):
+    """Схема для ресурса теории из БД"""
+    id: int
+    topic_id: int
+
+    class Config:
+        orm_mode = True
+
+
+class TheoryContentBase(BaseModel):
+    """Базовая схема для содержимого теории"""
+    content: str
+
+
+class TheoryContentCreate(TheoryContentBase):
+    """Схема для создания содержимого теории"""
+    pass
+
+
+class TheoryContent(TheoryContentBase):
+    """Схема для содержимого теории из БД"""
+    id: int
+    topic_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class TheoryTopicBase(BaseModel):
+    """Базовая схема для темы теории"""
+    title: str
+    description: Optional[str] = None
+    exam_type: str = "rhcsa"
+    order: int = 0
+
+
+class TheoryTopicCreate(TheoryTopicBase):
+    """Схема для создания темы теории"""
+    parent_id: Optional[int] = None
+
+
+class TheoryTopicUpdate(BaseModel):
+    """Схема для обновления темы теории"""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    parent_id: Optional[int] = None
+    exam_type: Optional[str] = None
+    order: Optional[int] = None
+
+
+class TheoryTopicResponse(TheoryTopicBase):
+    """Схема для ответа с темой теории"""
+    id: int
+    parent_id: Optional[int] = None
+    
+    class Config:
+        orm_mode = True
+
+
+class TheoryTopicDetail(TheoryTopicResponse):
+    """Детальная схема для темы теории с содержимым и ресурсами"""
+    content: Optional[TheoryContent] = None
+    resources: List[TheoryResource] = []
+    children: List['TheoryTopicResponse'] = []
+    questions: List[QuestionResponse] = []
+
+    class Config:
+        orm_mode = True
+
+
+# Для поддержки рекурсивных ссылок
+TheoryTopicDetail.update_forward_refs()
