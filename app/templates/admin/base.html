@@ -32,6 +32,8 @@
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="/admin/questions?exam_type=rhcsa"><i class="fab fa-redhat me-1"></i>RHCSA</a></li>
                             <li><a class="dropdown-item" href="/admin/questions?exam_type=cka"><i class="fas fa-dharmachakra me-1"></i>CKA</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/categories"><i class="fas fa-tags me-1"></i>Категории</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -78,6 +80,9 @@
                     </a>
                     <a href="/admin/questions?exam_type=cka" class="list-group-item list-group-item-action {% if '/admin/questions' in request.url.path and request.query_params.get('exam_type') == 'cka' %}active{% endif %}">
                         <i class="fas fa-dharmachakra me-2"></i>Вопросы CKA
+                    </a>
+                    <a href="/admin/categories" class="list-group-item list-group-item-action {% if '/admin/categories' in request.url.path %}active{% endif %}">
+                        <i class="fas fa-tags me-2"></i>Категории вопросов
                     </a>
                     <div class="list-group-item list-group-item-secondary">
                         <i class="fas fa-book me-2"></i>Теория

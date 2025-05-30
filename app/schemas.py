@@ -193,7 +193,7 @@ class TheoryTopicResponse(TheoryTopicBase):
     """Схема для ответа с темой теории"""
     id: int
     parent_id: Optional[int] = None
-    
+
     class Config:
         orm_mode = True
 
