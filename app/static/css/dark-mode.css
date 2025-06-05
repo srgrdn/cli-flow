@@ -1,0 +1,235 @@
+/* Dark Mode Styles */
+:root {
+  --light-bg: #f8f9fa;
+  --light-text: #212529;
+  --light-card-bg: #fff;
+  --light-border: #dee2e6;
+  --light-navbar: #343a40;
+  --light-footer: #f8f9fa;
+  
+  --dark-bg: #222;
+  --dark-text: #e9ecef;
+  --dark-card-bg: #333;
+  --dark-border: #444;
+  --dark-navbar: #111;
+  --dark-footer: #111;
+}
+
+/* Animation keyframes */
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark-mode {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+/* Navbar Dark Mode */
+body.dark-mode .navbar {
+  background-color: var(--dark-navbar) !important;
+}
+
+body.dark-mode .navbar-dark .navbar-nav .nav-link {
+  color: #fff;
+}
+
+/* Cards Dark Mode */
+body.dark-mode .card {
+  background-color: var(--dark-card-bg);
+  border-color: var(--dark-border);
+}
+
+body.dark-mode .card-header {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--dark-border);
+}
+
+body.dark-mode .card-body {
+  color: var(--dark-text);
+}
+
+/* Footer Dark Mode */
+body.dark-mode footer.bg-light {
+  background-color: var(--dark-footer) !important;
+  color: var(--dark-text);
+}
+
+/* List groups */
+body.dark-mode .list-group-item {
+  background-color: var(--dark-card-bg);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+body.dark-mode .list-group-item:hover {
+  background-color: #444;
+}
+
+body.dark-mode .list-group-item.active {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+body.dark-mode .list-group-item.list-group-item-secondary {
+  background-color: #444;
+  color: white;
+}
+
+/* Tables */
+body.dark-mode .table {
+  color: var(--dark-text);
+}
+
+body.dark-mode .table td,
+body.dark-mode .table th {
+  border-color: var(--dark-border);
+}
+
+body.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Forms */
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+  background-color: #444;
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+  background-color: #555;
+  color: white;
+}
+
+/* Accordion */
+body.dark-mode .accordion-item {
+  background-color: var(--dark-card-bg);
+  border-color: var(--dark-border);
+}
+
+body.dark-mode .accordion-button {
+  background-color: var(--dark-card-bg);
+  color: var(--dark-text);
+}
+
+body.dark-mode .accordion-button:not(.collapsed) {
+  background-color: #444;
+  color: white;
+}
+
+body.dark-mode .accordion-button::after {
+  filter: invert(1);
+}
+
+/* Dropdowns */
+body.dark-mode .dropdown-menu {
+  background-color: var(--dark-card-bg);
+  border-color: var(--dark-border);
+}
+
+body.dark-mode .dropdown-item {
+  color: var(--dark-text);
+}
+
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+  background-color: #444;
+  color: white;
+}
+
+body.dark-mode .dropdown-divider {
+  border-color: var(--dark-border);
+}
+
+/* Alerts */
+body.dark-mode .alert {
+  border-color: var(--dark-border);
+}
+
+body.dark-mode .alert-info {
+  background-color: #264653;
+  color: white;
+}
+
+body.dark-mode .alert-success {
+  background-color: #2a9d8f;
+  color: white;
+}
+
+body.dark-mode .alert-warning {
+  background-color: #e9c46a;
+  color: #333;
+}
+
+body.dark-mode .alert-danger {
+  background-color: #e76f51;
+  color: white;
+}
+
+/* Code Blocks */
+body.dark-mode pre {
+  background-color: #111;
+  color: #e9ecef;
+  border-color: var(--dark-border);
+}
+
+body.dark-mode code {
+  background-color: #111;
+  color: #e9ecef;
+}
+
+/* Highlight.js overrides for dark mode */
+body.dark-mode .hljs {
+  background-color: #111;
+  color: #e9ecef;
+}
+
+/* Toggle Button */
+.theme-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #0d6efd;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  border: none;
+  transition: transform 0.3s, background-color 0.3s;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+}
+
+body.dark-mode .theme-toggle {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+/* Icon Animation */
+.theme-toggle i {
+  transition: transform 0.3s;
+}
+
+.theme-toggle:hover i {
+  transform: rotate(180deg);
+} 
